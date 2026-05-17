@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SteamKOntroller.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "SteamKOntroller.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

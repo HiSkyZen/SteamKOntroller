@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="SteamKOntroller.App.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:SteamKOntroller.App"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Margin="24" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <CommandBar DefaultLabelPosition="Right">
+            <AppBarToggleButton x:Name="EnabledToggle" Label="ON" Click="EnabledToggle_Click">
+                <AppBarToggleButton.Icon>
+                    <SymbolIcon Symbol="Accept" />
+                </AppBarToggleButton.Icon>
+            </AppBarToggleButton>
+            <AppBarButton Label="Reset" Click="ResetCounters_Click">
+                <AppBarButton.Icon>
+                    <SymbolIcon Symbol="Refresh" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+            <AppBarButton Label="Logs" Click="OpenLogs_Click">
+                <AppBarButton.Icon>
+                    <SymbolIcon Symbol="Folder" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+            <CommandBar.SecondaryCommands>
+                <AppBarButton Label="Exit" Click="Exit_Click" />
+            </CommandBar.SecondaryCommands>
+        </CommandBar>
+
+        <InfoBar
+            x:Name="StatusInfo"
+            Grid.Row="1"
+            IsOpen="True"
+            Severity="Informational" />
+
+        <ScrollViewer
+            Grid.Row="2"
+            HorizontalScrollBarVisibility="Auto"
+            HorizontalScrollMode="Enabled"
+            VerticalScrollBarVisibility="Disabled"
+            VerticalScrollMode="Disabled">
+            <Grid MinWidth="960" ColumnSpacing="20" RowSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="160" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Enabled" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Column="1" Text="Hook" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Column="2" Text="Hook events" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Column="3" Text="Candidates" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Column="4" Text="Suppressed" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Column="5" Text="Reinjected" Style="{ThemeResource CaptionTextBlockStyle}" />
+
+                <TextBlock x:Name="EnabledText" Grid.Row="1" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="HookText" Grid.Row="1" Grid.Column="1" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="HookEventsText" Grid.Row="1" Grid.Column="2" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="CandidatesText" Grid.Row="1" Grid.Column="3" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="SuppressedText" Grid.Row="1" Grid.Column="4" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="ReinjectedText" Grid.Row="1" Grid.Column="5" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                <TextBlock Grid.Row="2" Text="Loop guard" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="Failures" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="Last key" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="Last event" Style="{ThemeResource CaptionTextBlockStyle}" />
+
+                <TextBlock x:Name="LoopGuardText" Grid.Row="3" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="FailuresText" Grid.Row="3" Grid.Column="1" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="LastKeyText" Grid.Row="3" Grid.Column="2" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Name="LastEventText" Grid.Row="3" Grid.Column="3" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+            </Grid>
+        </ScrollViewer>
+
+        <ListView
+            x:Name="EventList"
+            Grid.Row="3"
+            SelectionMode="None">
+            <ListView.Header>
+                <Grid Padding="8,0,8,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="70" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Time" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="1" Text="Stage" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="2" Text="Action" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="3" Text="Key" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="4" Text="Direction" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="5" Text="Score" Style="{ThemeResource CaptionTextBlockStyle}" />
+                    <TextBlock Grid.Column="6" Text="Detail" Style="{ThemeResource CaptionTextBlockStyle}" />
+                </Grid>
+            </ListView.Header>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="local:DiagnosticRecordView">
+                    <Grid Padding="8,6" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110" />
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Bind Time}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="1" Text="{x:Bind Stage}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2" Text="{x:Bind Action}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="3" Text="{x:Bind Key}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="4" Text="{x:Bind Direction}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="5" Text="{x:Bind Score}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="6" Text="{x:Bind Detail}" TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

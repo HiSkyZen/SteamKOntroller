@@ -1,0 +1,63 @@
+# Local planning notes
+/SteamKontroller_Working_Plan.md
+/SteamKOntroller_Technical_Design.md
+
+# Build output
+**/[Bb]in/
+**/[Oo]bj/
+**/[Bb]in_[Vv]erify/
+**/[Dd]ebug/
+**/[Rr]elease/
+artifacts/
+
+# Visual Studio and editor state
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.DotSettings.user
+_ReSharper*/
+.idea/
+
+# Logs, diagnostics, and test output
+[Ll]og/
+[Ll]ogs/
+*.log
+*.binlog
+*.jsonl
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+# WinUI / MSIX packaging and publish output
+**/AppPackages/
+**/BundleArtifacts/
+**/Package.StoreAssociation.xml
+**/Generated Files/
+**/Properties/PublishProfiles/
+**/[Pp]ublish/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+*.cer
+*.pfx
+*.pubxml
+PublishScripts/
+
+# Generated project files
+*_wpftmp.csproj

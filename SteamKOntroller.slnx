@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SteamKOntroller.App/SteamKOntroller.App.csproj" />
+  <Project Path="SteamKOntroller.Core/SteamKOntroller.Core.csproj" />
+  <Project Path="SteamKOntroller.InputProbe/SteamKOntroller.InputProbe.csproj" />
+  <Project Path="SteamKOntroller.Tests/SteamKOntroller.Tests.csproj" />
+</Solution>
