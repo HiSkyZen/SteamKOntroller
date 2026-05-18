@@ -6,137 +6,357 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:SteamKOntroller.App"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
     mc:Ignorable="d">
 
-    <Grid Margin="24" RowSpacing="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+    <Page.Resources>
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="18" />
+        </Style>
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+            <Setter Property="Margin" Value="0,8,0,0" />
+        </Style>
+        <Style x:Key="CardCaptionStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </Page.Resources>
 
-        <CommandBar DefaultLabelPosition="Right">
-            <AppBarToggleButton x:Name="EnabledToggle" Label="ON" Click="EnabledToggle_Click">
-                <AppBarToggleButton.Icon>
-                    <SymbolIcon Symbol="Accept" />
-                </AppBarToggleButton.Icon>
-            </AppBarToggleButton>
-            <AppBarButton Label="Reset" Click="ResetCounters_Click">
-                <AppBarButton.Icon>
-                    <SymbolIcon Symbol="Refresh" />
-                </AppBarButton.Icon>
-            </AppBarButton>
-            <AppBarButton Label="Logs" Click="OpenLogs_Click">
-                <AppBarButton.Icon>
-                    <SymbolIcon Symbol="Folder" />
-                </AppBarButton.Icon>
-            </AppBarButton>
-            <CommandBar.SecondaryCommands>
-                <AppBarButton Label="Exit" Click="Exit_Click" />
-            </CommandBar.SecondaryCommands>
-        </CommandBar>
+    <NavigationView
+        x:Name="RootNavigation"
+        Header="Settings"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        PaneDisplayMode="LeftCompact"
+        SelectionChanged="RootNavigation_SelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                x:Name="SettingsNavItem"
+                Content="Settings"
+                Icon="Setting"
+                Tag="settings" />
+            <NavigationViewItem
+                x:Name="StatusNavItem"
+                Content="Status"
+                Icon="Play"
+                Tag="status" />
+            <NavigationViewItem
+                x:Name="DiagnosticsNavItem"
+                Content="Diagnostics"
+                Icon="Document"
+                Tag="diagnostics" />
+        </NavigationView.MenuItems>
 
-        <InfoBar
-            x:Name="StatusInfo"
-            Grid.Row="1"
-            IsOpen="True"
-            Severity="Informational" />
+        <Grid Padding="28,16,28,28" RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <ScrollViewer
-            Grid.Row="2"
-            HorizontalScrollBarVisibility="Auto"
-            HorizontalScrollMode="Enabled"
-            VerticalScrollBarVisibility="Disabled"
-            VerticalScrollMode="Disabled">
-            <Grid MinWidth="960" ColumnSpacing="20" RowSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="160" />
-                    <ColumnDefinition Width="160" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <CommandBar DefaultLabelPosition="Right">
+                <AppBarButton x:Name="BridgeActionButton" Click="BridgeActionButton_Click" Label="Turn off">
+                    <AppBarButton.Icon>
+                        <SymbolIcon x:Name="BridgeActionIcon" Symbol="Cancel" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <AppBarButton Label="Reset counters" Click="ResetCounters_Click">
+                    <AppBarButton.Icon>
+                        <SymbolIcon Symbol="Refresh" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <CommandBar.SecondaryCommands>
+                    <AppBarButton Label="Open diagnostic folder" Click="OpenLogs_Click">
+                        <AppBarButton.Icon>
+                            <SymbolIcon Symbol="Folder" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton Label="Exit" Click="Exit_Click" />
+                </CommandBar.SecondaryCommands>
+            </CommandBar>
 
-                <TextBlock Text="Enabled" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Column="1" Text="Hook" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Column="2" Text="Hook events" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Column="3" Text="Candidates" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Column="4" Text="Suppressed" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Column="5" Text="Reinjected" Style="{ThemeResource CaptionTextBlockStyle}" />
+            <Grid Grid.Row="1">
+                <ScrollViewer
+                    x:Name="SettingsView"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Enabled">
+                    <StackPanel MaxWidth="860" Spacing="16">
+                        <InfoBar
+                            x:Name="StatusInfo"
+                            IsOpen="True"
+                            Severity="Informational" />
 
-                <TextBlock x:Name="EnabledText" Grid.Row="1" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="HookText" Grid.Row="1" Grid.Column="1" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="HookEventsText" Grid.Row="1" Grid.Column="2" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="CandidatesText" Grid.Row="1" Grid.Column="3" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="SuppressedText" Grid.Row="1" Grid.Column="4" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="ReinjectedText" Grid.Row="1" Grid.Column="5" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <TextBlock Text="Bridge" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnSpacing="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Input bridge" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock
+                                        Text="Steam Keyboard input is filtered and reinjected while this is on."
+                                        Style="{ThemeResource BodyTextBlockStyle}"
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    x:Name="BridgeSwitch"
+                                    Grid.Column="1"
+                                    MinWidth="160"
+                                    AutomationProperties.Name="Input bridge"
+                                    OffContent="Off"
+                                    OnContent="On"
+                                    Toggled="BridgeSwitch_Toggled" />
+                            </Grid>
+                        </Border>
 
-                <TextBlock Grid.Row="2" Text="Loop guard" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="Failures" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="Last key" Style="{ThemeResource CaptionTextBlockStyle}" />
-                <TextBlock Grid.Row="2" Grid.Column="3" Text="Last event" Style="{ThemeResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="Startup" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnSpacing="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Start with Windows" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock
+                                        Text="The app starts in the notification area."
+                                        Style="{ThemeResource BodyTextBlockStyle}"
+                                        TextWrapping="WrapWholeWords" />
+                                </StackPanel>
+                                <ToggleSwitch
+                                    x:Name="StartupSwitch"
+                                    Grid.Column="1"
+                                    MinWidth="160"
+                                    AutomationProperties.Name="Start with Windows"
+                                    OffContent="Off"
+                                    OnContent="On"
+                                    Toggled="StartupSwitch_Toggled" />
+                            </Grid>
+                        </Border>
 
-                <TextBlock x:Name="LoopGuardText" Grid.Row="3" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="FailuresText" Grid.Row="3" Grid.Column="1" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="LastKeyText" Grid.Row="3" Grid.Column="2" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                <TextBlock x:Name="LastEventText" Grid.Row="3" Grid.Column="3" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
-            </Grid>
-        </ScrollViewer>
+                        <TextBlock Text="Diagnostics" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <StackPanel Spacing="18">
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Persistent diagnostic logging" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock
+                                            Text="Detailed input event logs are off by default."
+                                            Style="{ThemeResource BodyTextBlockStyle}"
+                                            TextWrapping="WrapWholeWords" />
+                                    </StackPanel>
+                                    <ToggleSwitch
+                                        x:Name="DiagnosticLoggingSwitch"
+                                        Grid.Column="1"
+                                        MinWidth="160"
+                                        AutomationProperties.Name="Persistent diagnostic logging"
+                                        OffContent="Off"
+                                        OnContent="On"
+                                        Toggled="DiagnosticLoggingSwitch_Toggled" />
+                                </Grid>
+                                <Grid ColumnSpacing="20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="180" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Log retention" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock
+                                            Text="Completed logs are compressed and expired logs are deleted."
+                                            Style="{ThemeResource BodyTextBlockStyle}"
+                                            TextWrapping="WrapWholeWords" />
+                                    </StackPanel>
+                                    <NumberBox
+                                        x:Name="RetentionDaysBox"
+                                        Grid.Column="1"
+                                        AutomationProperties.Name="Log retention days"
+                                        Header="Days"
+                                        LargeChange="7"
+                                        Maximum="90"
+                                        Minimum="1"
+                                        SmallChange="1"
+                                        SpinButtonPlacementMode="Compact"
+                                        ValueChanged="RetentionDaysBox_ValueChanged" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
-        <ListView
-            x:Name="EventList"
-            Grid.Row="3"
-            SelectionMode="None">
-            <ListView.Header>
-                <Grid Padding="8,0,8,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="110" />
-                        <ColumnDefinition Width="90" />
-                        <ColumnDefinition Width="150" />
-                        <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="90" />
-                        <ColumnDefinition Width="70" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Text="Time" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="1" Text="Stage" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="2" Text="Action" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="3" Text="Key" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="4" Text="Direction" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="5" Text="Score" Style="{ThemeResource CaptionTextBlockStyle}" />
-                    <TextBlock Grid.Column="6" Text="Detail" Style="{ThemeResource CaptionTextBlockStyle}" />
+                <ScrollViewer
+                    x:Name="StatusView"
+                    Visibility="Collapsed"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Enabled">
+                    <StackPanel MaxWidth="860" Spacing="16">
+                        <TextBlock Text="Runtime" Style="{StaticResource SectionTitleStyle}" />
+                        <Grid ColumnSpacing="12" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Border Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Bridge" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="EnabledText" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Hook" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="HookText" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Hook events" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="HookEventsText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Steam candidates" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="CandidatesText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Suppressed" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="SuppressedText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Reinjected" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="ReinjectedText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Loop guard" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="LoopGuardText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="SendInput failures" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="FailuresText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <TextBlock Text="Recent activity" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnSpacing="20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Last key" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="LastKeyText" Text="-" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Last event" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="LastEventText" Text="-" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Grid
+                    x:Name="DiagnosticsView"
+                    RowSpacing="12"
+                    Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <InfoBar
+                        x:Name="DiagnosticsInfo"
+                        IsOpen="True"
+                        Severity="Informational" />
+
+                    <CommandBar Grid.Row="1" DefaultLabelPosition="Right">
+                        <AppBarButton Label="Open folder" Click="OpenLogs_Click">
+                            <AppBarButton.Icon>
+                                <SymbolIcon Symbol="Folder" />
+                            </AppBarButton.Icon>
+                        </AppBarButton>
+                        <AppBarButton Label="Clear view" Click="ClearEvents_Click">
+                            <AppBarButton.Icon>
+                                <SymbolIcon Symbol="Delete" />
+                            </AppBarButton.Icon>
+                        </AppBarButton>
+                    </CommandBar>
+
+                    <ListView
+                        x:Name="EventList"
+                        Grid.Row="2"
+                        SelectionMode="None">
+                        <ListView.Header>
+                            <Grid Padding="8,0,8,6" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Time" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="1" Text="Stage" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="2" Text="Action" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="3" Text="Key" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="4" Text="Direction" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="5" Text="Score" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="6" Text="Detail" Style="{ThemeResource CaptionTextBlockStyle}" />
+                            </Grid>
+                        </ListView.Header>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:DiagnosticRecordView">
+                                <Grid Padding="8,6" ColumnSpacing="10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="70" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Bind Time}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Stage}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Action}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="3" Text="{x:Bind Key}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="4" Text="{x:Bind Direction}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="5" Text="{x:Bind Score}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="6" Text="{x:Bind Detail}" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </Grid>
-            </ListView.Header>
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="local:DiagnosticRecordView">
-                    <Grid Padding="8,6" ColumnSpacing="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="110" />
-                            <ColumnDefinition Width="90" />
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="120" />
-                            <ColumnDefinition Width="90" />
-                            <ColumnDefinition Width="70" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{x:Bind Time}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="1" Text="{x:Bind Stage}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="2" Text="{x:Bind Action}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="3" Text="{x:Bind Key}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="4" Text="{x:Bind Direction}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="5" Text="{x:Bind Score}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="6" Text="{x:Bind Detail}" TextTrimming="CharacterEllipsis" />
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-    </Grid>
+            </Grid>
+        </Grid>
+    </NavigationView>
 </Page>

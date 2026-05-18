@@ -28,9 +28,13 @@ public partial class App : Application
         _tray.ExitRequested += (_, _) => ExitApplication();
         Runtime.State.EnabledChanged += (_, enabled) => _tray.UpdateEnabled(enabled);
 
-        _window.Activate();
         _tray.UpdateEnabled(Runtime.Bridge.Enabled);
         Runtime.Start();
+        _window.Activate();
+        if (!ShouldShowWindow(args.Arguments))
+        {
+            WindowVisibility.Hide(_window);
+        }
     }
 
     internal void ShowMainWindow()
@@ -59,5 +63,11 @@ public partial class App : Application
     private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         Runtime?.ReportError("unhandled", e.Message);
+    }
+
+    private static bool ShouldShowWindow(string arguments)
+    {
+        return arguments.Contains("--show", StringComparison.OrdinalIgnoreCase)
+            || arguments.Contains("--window", StringComparison.OrdinalIgnoreCase);
     }
 }

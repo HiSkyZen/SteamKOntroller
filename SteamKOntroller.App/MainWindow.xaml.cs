@@ -1,6 +1,7 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using SteamKOntroller.App.Services;
+using Windows.Graphics;
 
 namespace SteamKOntroller.App;
 
@@ -14,6 +15,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
+        AppWindow.Resize(new SizeInt32(1040, 720));
         AppWindow.Closing += OnAppWindowClosing;
 
         RootFrame.Navigate(typeof(MainPage));

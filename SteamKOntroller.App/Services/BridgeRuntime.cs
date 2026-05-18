@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using SteamKOntroller.Core;
 using SteamKOntroller.Core.Classification;
 using SteamKOntroller.Core.Diagnostics;
@@ -9,29 +8,36 @@ namespace SteamKOntroller.App.Services;
 
 internal sealed class BridgeRuntime : IDisposable
 {
-    private readonly JsonlDiagnosticLogger _logger;
+    private readonly AppSettingsStore _settingsStore;
+    private readonly DiagnosticLogService _diagnosticLogs;
     private readonly EventDiagnosticSink _events;
     private bool _disposed;
 
     private BridgeRuntime(
+        AppSettingsStore settingsStore,
         AppState state,
         BridgeCounters counters,
-        JsonlDiagnosticLogger logger,
+        DiagnosticLogService diagnosticLogs,
         EventDiagnosticSink events,
         SteamInputBridge bridge)
     {
+        _settingsStore = settingsStore;
         State = state;
         Counters = counters;
-        _logger = logger;
+        _diagnosticLogs = diagnosticLogs;
         _events = events;
         Bridge = bridge;
     }
 
+    public AppSettings Settings => _settingsStore.Settings;
     public AppState State { get; }
     public BridgeCounters Counters { get; }
     public SteamInputBridge Bridge { get; }
-    public string LogPath => _logger.Path;
+    public string LogDirectory => _diagnosticLogs.DirectoryPath;
+    public string? CurrentLogPath => _diagnosticLogs.CurrentPath;
     public string? LastStartupError { get; private set; }
+
+    public event EventHandler? SettingsChanged;
 
     public event EventHandler<InputDiagnosticRecord>? RecordWritten
     {
@@ -41,9 +47,12 @@ internal sealed class BridgeRuntime : IDisposable
 
     public static BridgeRuntime Create()
     {
+        var settingsStore = AppSettingsStore.LoadDefault();
         var state = new AppState();
         var counters = new BridgeCounters();
-        var logger = new JsonlDiagnosticLogger(JsonlDiagnosticLogger.CreateDefaultPath());
+        var logger = new DiagnosticLogService(
+            settingsStore.Settings.DiagnosticLoggingEnabled,
+            settingsStore.Settings.LogRetentionDays);
         var events = new EventDiagnosticSink();
         var diagnostics = new CompositeDiagnosticSink(logger, events);
         var bridge = new SteamInputBridge(
@@ -54,7 +63,7 @@ internal sealed class BridgeRuntime : IDisposable
             diagnostics,
             counters);
 
-        return new BridgeRuntime(state, counters, logger, events, bridge);
+        return new BridgeRuntime(settingsStore, state, counters, logger, events, bridge);
     }
 
     public void Start()
@@ -84,17 +93,34 @@ internal sealed class BridgeRuntime : IDisposable
 
     public void OpenLogFolder()
     {
-        var logFolder = Path.GetDirectoryName(LogPath);
-        if (string.IsNullOrWhiteSpace(logFolder))
+        _diagnosticLogs.OpenDirectory();
+    }
+
+    public void SetDiagnosticLoggingEnabled(bool enabled)
+    {
+        if (Settings.DiagnosticLoggingEnabled == enabled)
         {
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        Settings.DiagnosticLoggingEnabled = enabled;
+        _settingsStore.Save();
+        _diagnosticLogs.SetEnabled(enabled);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetLogRetentionDays(int days)
+    {
+        var clampedDays = AppSettingsStore.ClampRetentionDays(days);
+        if (Settings.LogRetentionDays == clampedDays)
         {
-            FileName = logFolder,
-            UseShellExecute = true
-        });
+            return;
+        }
+
+        Settings.LogRetentionDays = clampedDays;
+        _settingsStore.Save();
+        _diagnosticLogs.SetRetentionDays(clampedDays);
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Dispose()
@@ -106,6 +132,6 @@ internal sealed class BridgeRuntime : IDisposable
 
         _disposed = true;
         Bridge.Dispose();
-        _logger.Dispose();
+        _diagnosticLogs.Dispose();
     }
 }

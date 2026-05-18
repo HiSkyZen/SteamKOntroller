@@ -100,9 +100,9 @@ internal sealed class TrayIconService : IDisposable
 
         try
         {
-            AppendMenu(menu, MF_STRING | (_enabled ? MF_CHECKED : 0), IDM_TOGGLE, _enabled ? "Disable" : "Enable");
-            AppendMenu(menu, MF_STRING, IDM_STATUS, "Status");
-            AppendMenu(menu, MF_STRING, IDM_LOGS, "Logs");
+            AppendMenu(menu, MF_STRING | (_enabled ? MF_CHECKED : 0), IDM_TOGGLE, _enabled ? "Turn off bridge" : "Turn on bridge");
+            AppendMenu(menu, MF_STRING, IDM_STATUS, "Settings");
+            AppendMenu(menu, MF_STRING, IDM_LOGS, "Diagnostic logs");
             AppendMenu(menu, MF_SEPARATOR, 0, null);
             AppendMenu(menu, MF_STRING, IDM_EXIT, "Exit");
 

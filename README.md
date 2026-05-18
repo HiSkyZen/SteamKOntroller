@@ -25,15 +25,16 @@
 
 SteamKOntroller is a Windows desktop utility that observes Steam Keyboard input, classifies injected key events, and bridges them through a controlled reinjection path.
 
-The application includes a compact WinUI interface for enabling the bridge, checking runtime counters, and opening diagnostic logs.
+The application includes a Fluent WinUI settings interface for enabling the bridge, managing startup behavior, checking runtime counters, and opting into diagnostic logs.
 
 ## Features
 
 - WinUI 3 desktop app
 - Steam Keyboard candidate detection through low-level keyboard hooks
 - Suppression and scancode reinjection pipeline
-- Runtime status, counters, and diagnostic event view
-- JSONL diagnostic logging
+- Tray-first startup and optional Windows sign-in launch
+- Runtime status and counters separated from diagnostic event details
+- Optional JSONL diagnostic logging with compression and retention cleanup
 - InputProbe utility for inspecting Raw Input, hook, and window message paths
 
 ## Repository Layout
@@ -62,8 +63,12 @@ dotnet build .\SteamKOntroller.slnx -c Release
 ## Run
 
 ```powershell
-dotnet run --project .\SteamKOntroller.App\SteamKOntroller.App.csproj
+$arch = $env:PROCESSOR_ARCHITECTURE
+$Platform = if ($arch -eq 'AMD64') { 'x64' } else { $arch }
+dotnet run --project .\SteamKOntroller.App\SteamKOntroller.App.csproj -p:Platform=$Platform
 ```
+
+The app starts in the notification area by default. Add `-- --show` to open the settings window during development.
 
 The InputProbe utility can be started separately:
 
@@ -79,7 +84,7 @@ dotnet run --project .\SteamKOntroller.Tests\SteamKOntroller.Tests.csproj
 
 ## Diagnostics
 
-Diagnostic logs are written as JSONL files under the user's local application data folder. Use the app's log button to open the current log directory.
+Persistent diagnostic logging is disabled by default. When enabled in the app, completed JSONL logs are compressed and old logs are deleted according to the configured retention period. Use the app's diagnostics page to open the log directory.
 
 ## License
 
