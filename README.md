@@ -16,7 +16,6 @@
     <img alt="License" src="https://img.shields.io/github/license/HiSkyZen/SteamKOntroller?style=for-the-badge">
   </a>
   <img alt=".NET 8" src="https://img.shields.io/badge/.NET-8.0-512bd4?style=for-the-badge&logo=dotnet&logoColor=white">
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%2B-0078d4?style=for-the-badge&logo=windows&logoColor=white">
   <a href="https://github.com/HiSkyZen/SteamKOntroller/stargazers">
     <img alt="GitHub Stars" src="https://img.shields.io/github/stars/HiSkyZen/SteamKOntroller?style=for-the-badge&logo=github">
   </a>
@@ -30,7 +29,7 @@ The application includes a compact WinUI interface for enabling the bridge, chec
 
 ## Features
 
-- WinUI 3 desktop app for Windows 10 and Windows 11
+- WinUI 3 desktop app
 - Steam Keyboard candidate detection through low-level keyboard hooks
 - Suppression and scancode reinjection pipeline
 - Runtime status, counters, and diagnostic event view
