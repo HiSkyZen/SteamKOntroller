@@ -101,32 +101,32 @@ public sealed partial class MainPage : Page
 
         _updatingControls = false;
 
-        BridgeActionButton.Label = enabled ? "Turn off" : "Turn on";
+        BridgeActionText.Text = enabled ? "끄기" : "켜기";
         BridgeActionIcon.Symbol = enabled ? Symbol.Cancel : Symbol.Play;
 
         StatusInfo.Severity = _runtime.LastStartupError is null
             ? (snapshot.HookInstalled ? InfoBarSeverity.Success : InfoBarSeverity.Warning)
             : InfoBarSeverity.Error;
         StatusInfo.Title = _runtime.LastStartupError is null
-            ? (snapshot.HookInstalled ? "Bridge is running" : "Bridge is stopped")
-            : "Bridge error";
+            ? (snapshot.HookInstalled ? "브리지가 실행 중입니다" : "브리지가 중지되었습니다")
+            : "브리지 오류";
         StatusInfo.Message = _runtime.LastStartupError ?? BuildStatusMessage(diagnosticsEnabled);
 
         DiagnosticsInfo.Severity = diagnosticsEnabled ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
-        DiagnosticsInfo.Title = diagnosticsEnabled ? "Diagnostic logging is on" : "Diagnostic logging is off";
+        DiagnosticsInfo.Title = diagnosticsEnabled ? "진단 로그가 켜져 있습니다" : "진단 로그가 꺼져 있습니다";
         DiagnosticsInfo.Message = diagnosticsEnabled
-            ? $"Current folder: {_runtime.LogDirectory}"
-            : "Detailed input events are not written to disk until logging is enabled.";
+            ? $"현재 폴더: {_runtime.LogDirectory}"
+            : "로그를 켤 때까지 상세 입력 이벤트를 디스크에 저장하지 않습니다.";
 
-        EnabledText.Text = enabled ? "On" : "Off";
-        HookText.Text = snapshot.HookInstalled ? "Installed" : "Stopped";
+        EnabledText.Text = enabled ? "켬" : "끔";
+        HookText.Text = snapshot.HookInstalled ? "설치됨" : "중지됨";
         HookEventsText.Text = snapshot.HookEvents.ToString("N0");
         CandidatesText.Text = snapshot.SteamCandidates.ToString("N0");
         SuppressedText.Text = snapshot.SuppressedEvents.ToString("N0");
         ReinjectedText.Text = snapshot.ReinjectedEvents.ToString("N0");
         LoopGuardText.Text = snapshot.LoopGuardedEvents.ToString("N0");
         FailuresText.Text = snapshot.SendInputFailures.ToString("N0");
-        LastKeyText.Text = diagnosticsEnabled ? snapshot.LastKeyText : "Hidden";
+        LastKeyText.Text = diagnosticsEnabled ? snapshot.LastKeyText : "숨김";
         LastEventText.Text = snapshot.LastEventAt?.ToString("HH:mm:ss.fff") ?? "-";
     }
 
@@ -134,12 +134,12 @@ public sealed partial class MainPage : Page
     {
         if (!diagnosticsEnabled)
         {
-            return "Persistent diagnostic logging is off.";
+            return "영구 진단 로그가 꺼져 있습니다.";
         }
 
         return _runtime.CurrentLogPath is null
-            ? $"Diagnostic logging will start in {_runtime.LogDirectory}"
-            : $"Writing diagnostics to {_runtime.CurrentLogPath}";
+            ? $"진단 로그는 {_runtime.LogDirectory}에 저장됩니다."
+            : $"진단 로그 기록 중: {_runtime.CurrentLogPath}";
     }
 
     private void RootNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -159,9 +159,9 @@ public sealed partial class MainPage : Page
         DiagnosticsView.Visibility = tag == "diagnostics" ? Visibility.Visible : Visibility.Collapsed;
         RootNavigation.Header = tag switch
         {
-            "status" => "Status",
-            "diagnostics" => "Diagnostics",
-            _ => "Settings"
+            "status" => "상태",
+            "diagnostics" => "진단",
+            _ => "설정"
         };
     }
 
@@ -198,7 +198,7 @@ public sealed partial class MainPage : Page
         {
             RefreshStatus();
             StatusInfo.Severity = InfoBarSeverity.Error;
-            StatusInfo.Title = "Startup registration failed";
+            StatusInfo.Title = "시작 등록 실패";
             StatusInfo.Message = ex.Message;
         }
     }

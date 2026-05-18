@@ -12,15 +12,18 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="SteamKOntroller">
+        <TitleBar
+            x:Name="AppTitleBar"
+            MinHeight="48"
+            Title="SteamKOntroller">
             <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+                <ImageIconSource ImageSource="Assets/Square44x44Logo.targetsize-48_altform-lightunplated.png" />
             </TitleBar.IconSource>
         </TitleBar>
 

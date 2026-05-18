@@ -29,8 +29,9 @@ internal sealed class TrayIconService : IDisposable
 
     private const uint IMAGE_ICON = 1;
     private const uint LR_LOADFROMFILE = 0x00000010;
-    private const uint LR_DEFAULTSIZE = 0x00000040;
     private static readonly IntPtr IDI_APPLICATION = new(32512);
+    private const int SM_CXSMICON = 49;
+    private const int SM_CYSMICON = 50;
 
     private const uint IDM_TOGGLE = 1001;
     private const uint IDM_STATUS = 1002;
@@ -100,11 +101,11 @@ internal sealed class TrayIconService : IDisposable
 
         try
         {
-            AppendMenu(menu, MF_STRING | (_enabled ? MF_CHECKED : 0), IDM_TOGGLE, _enabled ? "Turn off bridge" : "Turn on bridge");
-            AppendMenu(menu, MF_STRING, IDM_STATUS, "Settings");
-            AppendMenu(menu, MF_STRING, IDM_LOGS, "Diagnostic logs");
+            AppendMenu(menu, MF_STRING | (_enabled ? MF_CHECKED : 0), IDM_TOGGLE, _enabled ? "브리지 끄기" : "브리지 켜기");
+            AppendMenu(menu, MF_STRING, IDM_STATUS, "설정");
+            AppendMenu(menu, MF_STRING, IDM_LOGS, "진단 로그");
             AppendMenu(menu, MF_SEPARATOR, 0, null);
-            AppendMenu(menu, MF_STRING, IDM_EXIT, "Exit");
+            AppendMenu(menu, MF_STRING, IDM_EXIT, "종료");
 
             GetCursorPos(out var pt);
             SetForegroundWindow(_hwnd);
@@ -139,7 +140,7 @@ internal sealed class TrayIconService : IDisposable
         uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP,
         uCallbackMessage = WM_TRAYICON,
         hIcon = _iconHandle,
-        szTip = enabled ? "SteamKOntroller ON" : "SteamKOntroller OFF"
+        szTip = enabled ? "SteamKOntroller 켜짐" : "SteamKOntroller 꺼짐"
     };
 
     private static (IntPtr Icon, bool OwnsHandle) LoadTrayIcon()
@@ -147,7 +148,13 @@ internal sealed class TrayIconService : IDisposable
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
         if (File.Exists(iconPath))
         {
-            var icon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            var icon = LoadImage(
+                IntPtr.Zero,
+                iconPath,
+                IMAGE_ICON,
+                GetSystemMetrics(SM_CXSMICON),
+                GetSystemMetrics(SM_CYSMICON),
+                LR_LOADFROMFILE);
             if (icon != IntPtr.Zero)
             {
                 return (icon, true);
@@ -220,6 +227,9 @@ internal sealed class TrayIconService : IDisposable
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr LoadIcon(IntPtr hInstance, IntPtr lpIconName);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

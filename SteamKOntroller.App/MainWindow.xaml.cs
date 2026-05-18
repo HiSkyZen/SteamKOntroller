@@ -14,8 +14,8 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 
-        AppWindow.SetIcon("Assets/AppIcon.ico");
-        AppWindow.Resize(new SizeInt32(1040, 720));
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+        AppWindow.Resize(new SizeInt32(1360, 860));
         AppWindow.Closing += OnAppWindowClosing;
 
         RootFrame.Navigate(typeof(MainPage));

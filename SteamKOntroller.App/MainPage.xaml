@@ -18,16 +18,20 @@
             <Setter Property="Padding" Value="18" />
         </Style>
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
-            <Setter Property="Margin" Value="0,8,0,0" />
+            <Setter Property="Margin" Value="0,10,0,0" />
         </Style>
         <Style x:Key="CardCaptionStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
             <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="CommandButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="MinWidth" Value="0" />
         </Style>
     </Page.Resources>
 
     <NavigationView
         x:Name="RootNavigation"
-        Header="Settings"
+        Header="설정"
         IsBackButtonVisible="Collapsed"
         IsSettingsVisible="False"
         PaneDisplayMode="LeftCompact"
@@ -35,150 +39,181 @@
         <NavigationView.MenuItems>
             <NavigationViewItem
                 x:Name="SettingsNavItem"
-                Content="Settings"
+                Content="설정"
                 Icon="Setting"
                 Tag="settings" />
             <NavigationViewItem
                 x:Name="StatusNavItem"
-                Content="Status"
+                Content="상태"
                 Icon="Play"
                 Tag="status" />
             <NavigationViewItem
                 x:Name="DiagnosticsNavItem"
-                Content="Diagnostics"
+                Content="진단"
                 Icon="Document"
                 Tag="diagnostics" />
         </NavigationView.MenuItems>
 
-        <Grid Padding="28,16,28,28" RowSpacing="16">
+        <Grid Padding="36,20,36,34" RowSpacing="18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <CommandBar DefaultLabelPosition="Right">
-                <AppBarButton x:Name="BridgeActionButton" Click="BridgeActionButton_Click" Label="Turn off">
-                    <AppBarButton.Icon>
+            <Grid ColumnSpacing="8" HorizontalAlignment="Right">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BridgeActionButton" Style="{StaticResource CommandButtonStyle}" Click="BridgeActionButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
                         <SymbolIcon x:Name="BridgeActionIcon" Symbol="Cancel" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <AppBarButton Label="Reset counters" Click="ResetCounters_Click">
-                    <AppBarButton.Icon>
+                        <TextBlock x:Name="BridgeActionText" Text="끄기" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource CommandButtonStyle}" Click="ResetCounters_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
                         <SymbolIcon Symbol="Refresh" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <CommandBar.SecondaryCommands>
-                    <AppBarButton Label="Open diagnostic folder" Click="OpenLogs_Click">
-                        <AppBarButton.Icon>
-                            <SymbolIcon Symbol="Folder" />
-                        </AppBarButton.Icon>
-                    </AppBarButton>
-                    <AppBarButton Label="Exit" Click="Exit_Click" />
-                </CommandBar.SecondaryCommands>
-            </CommandBar>
+                        <TextBlock Text="카운터 초기화" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Style="{StaticResource CommandButtonStyle}" Click="OpenLogs_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <SymbolIcon Symbol="Folder" />
+                        <TextBlock Text="로그 폴더" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="3" Style="{StaticResource CommandButtonStyle}" Click="Exit_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <SymbolIcon Symbol="Cancel" />
+                        <TextBlock Text="종료" />
+                    </StackPanel>
+                </Button>
+            </Grid>
 
             <Grid Grid.Row="1">
                 <ScrollViewer
                     x:Name="SettingsView"
                     VerticalScrollBarVisibility="Auto"
                     VerticalScrollMode="Enabled">
-                    <StackPanel MaxWidth="860" Spacing="16">
+                    <Grid
+                        MaxWidth="1240"
+                        Margin="0,0,16,0"
+                        HorizontalAlignment="Stretch"
+                        RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
                         <InfoBar
                             x:Name="StatusInfo"
                             IsOpen="True"
                             Severity="Informational" />
 
-                        <TextBlock Text="Bridge" Style="{StaticResource SectionTitleStyle}" />
-                        <Border Style="{StaticResource CardBorderStyle}">
+                        <TextBlock Grid.Row="1" Text="브리지" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
                             <Grid ColumnSpacing="20">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Input bridge" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="입력 브리지" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                     <TextBlock
-                                        Text="Steam Keyboard input is filtered and reinjected while this is on."
+                                        Text="켜져 있으면 Steam Keyboard 입력을 필터링하고 재주입합니다."
                                         Style="{ThemeResource BodyTextBlockStyle}"
                                         TextWrapping="WrapWholeWords" />
                                 </StackPanel>
                                 <ToggleSwitch
                                     x:Name="BridgeSwitch"
                                     Grid.Column="1"
-                                    MinWidth="160"
-                                    AutomationProperties.Name="Input bridge"
-                                    OffContent="Off"
-                                    OnContent="On"
+                                    MinWidth="150"
+                                    AutomationProperties.Name="입력 브리지"
+                                    OffContent="끔"
+                                    OnContent="켬"
                                     Toggled="BridgeSwitch_Toggled" />
                             </Grid>
                         </Border>
 
-                        <TextBlock Text="Startup" Style="{StaticResource SectionTitleStyle}" />
-                        <Border Style="{StaticResource CardBorderStyle}">
+                        <TextBlock Grid.Row="3" Text="시작" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Grid.Row="4" Style="{StaticResource CardBorderStyle}">
                             <Grid ColumnSpacing="20">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Start with Windows" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="Windows 로그인 시 시작" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                     <TextBlock
-                                        Text="The app starts in the notification area."
+                                        Text="앱은 창을 열지 않고 알림 영역에서 시작합니다."
                                         Style="{ThemeResource BodyTextBlockStyle}"
                                         TextWrapping="WrapWholeWords" />
                                 </StackPanel>
                                 <ToggleSwitch
                                     x:Name="StartupSwitch"
                                     Grid.Column="1"
-                                    MinWidth="160"
-                                    AutomationProperties.Name="Start with Windows"
-                                    OffContent="Off"
-                                    OnContent="On"
+                                    MinWidth="150"
+                                    AutomationProperties.Name="Windows 로그인 시 시작"
+                                    OffContent="끔"
+                                    OnContent="켬"
                                     Toggled="StartupSwitch_Toggled" />
                             </Grid>
                         </Border>
 
-                        <TextBlock Text="Diagnostics" Style="{StaticResource SectionTitleStyle}" />
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <StackPanel Spacing="18">
+                        <TextBlock Grid.Row="5" Text="진단" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Grid.Row="6" Style="{StaticResource CardBorderStyle}">
+                            <Grid RowSpacing="18">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <Grid ColumnSpacing="20">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Persistent diagnostic logging" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock Text="영구 진단 로그" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                         <TextBlock
-                                            Text="Detailed input event logs are off by default."
+                                            Text="상세 입력 이벤트 로그는 기본적으로 저장하지 않습니다."
                                             Style="{ThemeResource BodyTextBlockStyle}"
                                             TextWrapping="WrapWholeWords" />
                                     </StackPanel>
                                     <ToggleSwitch
                                         x:Name="DiagnosticLoggingSwitch"
                                         Grid.Column="1"
-                                        MinWidth="160"
-                                        AutomationProperties.Name="Persistent diagnostic logging"
-                                        OffContent="Off"
-                                        OnContent="On"
+                                        MinWidth="150"
+                                        AutomationProperties.Name="영구 진단 로그"
+                                        OffContent="끔"
+                                        OnContent="켬"
                                         Toggled="DiagnosticLoggingSwitch_Toggled" />
                                 </Grid>
-                                <Grid ColumnSpacing="20">
+                                <Grid Grid.Row="1" ColumnSpacing="20">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="180" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Spacing="4">
-                                        <TextBlock Text="Log retention" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock Text="로그 보관 기간" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                         <TextBlock
-                                            Text="Completed logs are compressed and expired logs are deleted."
+                                            Text="완료된 로그는 압축하고 보관 기간이 지난 로그는 삭제합니다."
                                             Style="{ThemeResource BodyTextBlockStyle}"
                                             TextWrapping="WrapWholeWords" />
                                     </StackPanel>
                                     <NumberBox
                                         x:Name="RetentionDaysBox"
                                         Grid.Column="1"
-                                        AutomationProperties.Name="Log retention days"
-                                        Header="Days"
+                                        AutomationProperties.Name="로그 보관 기간"
+                                        Header="일"
                                         LargeChange="7"
                                         Maximum="90"
                                         Minimum="1"
@@ -186,9 +221,9 @@
                                         SpinButtonPlacementMode="Compact"
                                         ValueChanged="RetentionDaysBox_ValueChanged" />
                                 </Grid>
-                            </StackPanel>
+                            </Grid>
                         </Border>
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
 
                 <ScrollViewer
@@ -196,92 +231,104 @@
                     Visibility="Collapsed"
                     VerticalScrollBarVisibility="Auto"
                     VerticalScrollMode="Enabled">
-                    <StackPanel MaxWidth="860" Spacing="16">
-                        <TextBlock Text="Runtime" Style="{StaticResource SectionTitleStyle}" />
-                        <Grid ColumnSpacing="12" RowSpacing="12">
+                    <Grid
+                        MaxWidth="1240"
+                        Margin="0,0,16,0"
+                        HorizontalAlignment="Stretch"
+                        RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="런타임" Style="{StaticResource SectionTitleStyle}" />
+                        <Grid Grid.Row="1" ColumnSpacing="12" RowSpacing="12">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <Border Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Bridge" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="브리지" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="EnabledText" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Hook" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="후크" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="HookText" Text="-" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="후크 이벤트" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="HookEventsText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="3" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Steam 후보" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="CandidatesText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Hook events" Style="{StaticResource CardCaptionStyle}" />
-                                    <TextBlock x:Name="HookEventsText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                    <TextBlock Text="차단" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock x:Name="SuppressedText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Steam candidates" Style="{StaticResource CardCaptionStyle}" />
-                                    <TextBlock x:Name="CandidatesText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Suppressed" Style="{StaticResource CardCaptionStyle}" />
-                                    <TextBlock x:Name="SuppressedText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Text="Reinjected" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="재주입" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="ReinjectedText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
-                            <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}">
+                            <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Loop guard" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="루프 방지" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="LoopGuardText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
-                            <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                            <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="SendInput failures" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="SendInput 실패" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="FailuresText" Text="0" Style="{ThemeResource SubtitleTextBlockStyle}" />
                                 </StackPanel>
                             </Border>
                         </Grid>
 
-                        <TextBlock Text="Recent activity" Style="{StaticResource SectionTitleStyle}" />
-                        <Border Style="{StaticResource CardBorderStyle}">
+                        <TextBlock Grid.Row="2" Text="최근 활동" Style="{StaticResource SectionTitleStyle}" />
+                        <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}">
                             <Grid ColumnSpacing="20">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="Last key" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="마지막 키" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="LastKeyText" Text="-" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="4">
-                                    <TextBlock Text="Last event" Style="{StaticResource CardCaptionStyle}" />
+                                    <TextBlock Text="마지막 이벤트" Style="{StaticResource CardCaptionStyle}" />
                                     <TextBlock x:Name="LastEventText" Text="-" Style="{ThemeResource BodyStrongTextBlockStyle}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
-                    </StackPanel>
+                    </Grid>
                 </ScrollViewer>
 
                 <Grid
                     x:Name="DiagnosticsView"
+                    Margin="0,0,16,0"
                     RowSpacing="12"
                     Visibility="Collapsed">
                     <Grid.RowDefinitions>
@@ -295,18 +342,24 @@
                         IsOpen="True"
                         Severity="Informational" />
 
-                    <CommandBar Grid.Row="1" DefaultLabelPosition="Right">
-                        <AppBarButton Label="Open folder" Click="OpenLogs_Click">
-                            <AppBarButton.Icon>
+                    <Grid Grid.Row="1" ColumnSpacing="8" HorizontalAlignment="Right">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource CommandButtonStyle}" Click="OpenLogs_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
                                 <SymbolIcon Symbol="Folder" />
-                            </AppBarButton.Icon>
-                        </AppBarButton>
-                        <AppBarButton Label="Clear view" Click="ClearEvents_Click">
-                            <AppBarButton.Icon>
+                                <TextBlock Text="폴더 열기" />
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="1" Style="{StaticResource CommandButtonStyle}" Click="ClearEvents_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
                                 <SymbolIcon Symbol="Delete" />
-                            </AppBarButton.Icon>
-                        </AppBarButton>
-                    </CommandBar>
+                                <TextBlock Text="화면 지우기" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
 
                     <ListView
                         x:Name="EventList"
@@ -323,13 +376,13 @@
                                     <ColumnDefinition Width="70" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Time" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="1" Text="Stage" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="2" Text="Action" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="3" Text="Key" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="4" Text="Direction" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="5" Text="Score" Style="{ThemeResource CaptionTextBlockStyle}" />
-                                <TextBlock Grid.Column="6" Text="Detail" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Text="시간" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="1" Text="단계" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="2" Text="동작" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="3" Text="키" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="4" Text="방향" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="5" Text="점수" Style="{ThemeResource CaptionTextBlockStyle}" />
+                                <TextBlock Grid.Column="6" Text="상세" Style="{ThemeResource CaptionTextBlockStyle}" />
                             </Grid>
                         </ListView.Header>
                         <ListView.ItemTemplate>
