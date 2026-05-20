@@ -10,6 +10,7 @@ public sealed class ScancodeReinjector : IDisposable
     private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_SCANCODE = 0x0008;
+    private const ushort LeftShiftScanCode = 0x2A;
 
     private readonly Channel<ScanCodeInjectionRequest> _queue = Channel.CreateUnbounded<ScanCodeInjectionRequest>(
         new UnboundedChannelOptions
@@ -29,10 +30,16 @@ public sealed class ScancodeReinjector : IDisposable
         _worker ??= Task.Run(WorkerLoopAsync);
     }
 
-    public bool TryEnqueueTap(ushort virtualKey, ushort scanCode, bool extended)
+    public bool TryEnqueueTap(ushort virtualKey, ushort scanCode, bool extended, bool mockShift = false)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return _queue.Writer.TryWrite(new ScanCodeInjectionRequest(virtualKey, scanCode, extended));
+        return _queue.Writer.TryWrite(new ScanCodeInjectionRequest(virtualKey, scanCode, extended, mockShift));
+    }
+
+    public bool TryEnqueueVirtualKeyTap(ushort virtualKey)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _queue.Writer.TryWrite(new ScanCodeInjectionRequest(virtualKey, ScanCode: 0, Extended: false));
     }
 
     private async Task WorkerLoopAsync()
@@ -52,8 +59,9 @@ public sealed class ScancodeReinjector : IDisposable
 
     private static SendInputResult SendTap(ScanCodeInjectionRequest request)
     {
-        var flagsDown = KEYEVENTF_SCANCODE;
-        var flagsUp = KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
+        var useVirtualKey = request.ScanCode == 0;
+        var flagsDown = useVirtualKey ? 0 : KEYEVENTF_SCANCODE;
+        var flagsUp = useVirtualKey ? KEYEVENTF_KEYUP : KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP;
 
         if (request.Extended)
         {
@@ -61,7 +69,7 @@ public sealed class ScancodeReinjector : IDisposable
             flagsUp |= KEYEVENTF_EXTENDEDKEY;
         }
 
-        var inputs = new[]
+        var keyInputs = new[]
         {
             new INPUT
             {
@@ -70,7 +78,7 @@ public sealed class ScancodeReinjector : IDisposable
                 {
                     ki = new KEYBDINPUT
                     {
-                        wVk = 0,
+                        wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
                         wScan = request.ScanCode,
                         dwFlags = flagsDown,
                         time = 0,
@@ -85,7 +93,7 @@ public sealed class ScancodeReinjector : IDisposable
                 {
                     ki = new KEYBDINPUT
                     {
-                        wVk = 0,
+                        wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
                         wScan = request.ScanCode,
                         dwFlags = flagsUp,
                         time = 0,
@@ -95,11 +103,37 @@ public sealed class ScancodeReinjector : IDisposable
             }
         };
 
+        var inputs = request.MockShift
+            ? new[]
+            {
+                CreateScanCodeInput(LeftShiftScanCode, 0),
+                keyInputs[0],
+                keyInputs[1],
+                CreateScanCodeInput(LeftShiftScanCode, KEYEVENTF_KEYUP)
+            }
+            : keyInputs;
+
         var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
         var lastError = sent == inputs.Length ? 0 : Marshal.GetLastWin32Error();
         var error = lastError == 0 ? null : new Win32Exception(lastError).Message;
-        return new SendInputResult(request.VirtualKey, request.ScanCode, sent, lastError, error);
+        return new SendInputResult(request.VirtualKey, request.ScanCode, sent, lastError, error, (uint)inputs.Length);
     }
+
+    private static INPUT CreateScanCodeInput(ushort scanCode, uint flags) => new()
+    {
+        type = INPUT_KEYBOARD,
+        U = new INPUTUNION
+        {
+            ki = new KEYBDINPUT
+            {
+                wVk = 0,
+                wScan = scanCode,
+                dwFlags = KEYEVENTF_SCANCODE | flags,
+                time = 0,
+                dwExtraInfo = InjectionMarker.Value
+            }
+        }
+    };
 
     public void Dispose()
     {

@@ -93,12 +93,30 @@ public sealed class SteamInputBridge : IDisposable
             case BridgeAction.SuppressAndReinject:
                 _counters.IncrementSuppressed();
                 _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
-                if (!_reinjector.TryEnqueueTap(keyboardEvent.VirtualKey, keyboardEvent.ScanCode, keyboardEvent.IsExtended))
+                if (!_reinjector.TryEnqueueTap(
+                    keyboardEvent.VirtualKey,
+                    keyboardEvent.ScanCode,
+                    keyboardEvent.IsExtended,
+                    decision.MockShift))
                 {
                     _counters.IncrementSendInputFailures();
                     _diagnostics.TryWrite(InputDiagnosticRecord.Error(
                         "reinject",
                         "reinject queue rejected request",
+                        keyboardEvent));
+                }
+
+                return true;
+
+            case BridgeAction.SuppressAndSendHangulToggle:
+                _counters.IncrementSuppressed();
+                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                if (!_reinjector.TryEnqueueVirtualKeyTap(VirtualKeys.VK_HANGUL))
+                {
+                    _counters.IncrementSendInputFailures();
+                    _diagnostics.TryWrite(InputDiagnosticRecord.Error(
+                        "reinject",
+                        "hangul toggle queue rejected request",
                         keyboardEvent));
                 }
 

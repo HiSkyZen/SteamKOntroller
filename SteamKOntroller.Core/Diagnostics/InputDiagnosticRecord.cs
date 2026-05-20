@@ -30,7 +30,7 @@ public sealed class InputDiagnosticRecord
         BridgeDecision decision) => new()
         {
             Timestamp = keyboardEvent.Timestamp,
-            Stage = decision.Action is BridgeAction.SuppressAndReinject or BridgeAction.SuppressOnly ? "suppress" : "classify",
+            Stage = decision.Action is BridgeAction.SuppressAndReinject or BridgeAction.SuppressAndSendHangulToggle or BridgeAction.SuppressOnly ? "suppress" : "classify",
             Vk = keyboardEvent.VirtualKey,
             ScanCode = keyboardEvent.ScanCode,
             Direction = keyboardEvent.Direction,

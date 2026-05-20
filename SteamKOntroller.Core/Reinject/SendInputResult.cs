@@ -5,7 +5,8 @@ public sealed record SendInputResult(
     ushort ScanCode,
     uint ReturnCount,
     int LastError,
-    string? ErrorMessage)
+    string? ErrorMessage,
+    uint ExpectedCount = 2)
 {
-    public bool Success => ReturnCount == 2;
+    public bool Success => ReturnCount == ExpectedCount;
 }
