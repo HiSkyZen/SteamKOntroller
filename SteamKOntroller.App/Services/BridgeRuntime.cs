@@ -36,6 +36,7 @@ internal sealed class BridgeRuntime : IDisposable
     public string LogDirectory => _diagnosticLogs.DirectoryPath;
     public string? CurrentLogPath => _diagnosticLogs.CurrentPath;
     public string? LastStartupError { get; private set; }
+    public IReadOnlyList<InputDiagnosticRecord> RecentRecords => _events.Snapshot();
 
     public event EventHandler? SettingsChanged;
 
@@ -53,7 +54,7 @@ internal sealed class BridgeRuntime : IDisposable
         var logger = new DiagnosticLogService(
             settingsStore.Settings.DiagnosticLoggingEnabled,
             settingsStore.Settings.LogRetentionDays);
-        var events = new EventDiagnosticSink();
+        var events = new EventDiagnosticSink(() => logger.IsEnabled);
         var diagnostics = new CompositeDiagnosticSink(logger, events);
         var bridge = new SteamInputBridge(
             state,
@@ -106,6 +107,7 @@ internal sealed class BridgeRuntime : IDisposable
         if (!enabled)
         {
             _diagnosticLogs.SetEnabled(false);
+            _events.ClearSensitiveFields();
         }
 
         Settings.DiagnosticLoggingEnabled = enabled;

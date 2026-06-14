@@ -9,6 +9,7 @@ using SteamKOntroller.Core.Reinject;
 var tests = new (string Name, Action Body)[]
 {
     ("classifier accepts lower-integrity injected supported keys", ClassifierAcceptsSteamCandidate),
+    ("classifier accepts injected packet ASCII letters without lower-integrity", ClassifierAcceptsInjectedPacketAsciiLettersWithoutLowerIntegrity),
     ("classifier ignores own reinjected marker", ClassifierIgnoresOwnMarker),
     ("policy suppresses candidate key down and reinjects", PolicySuppressesCandidateKeyDown),
     ("policy marks shifted Hangul double jamo keys for Shift mock", PolicyMarksShiftedHangulDoubleJamoKeysForShiftMock),
@@ -19,10 +20,13 @@ var tests = new (string Name, Action Body)[]
     ("policy bypasses shortcut modifiers", PolicyBypassesShortcutModifiers),
     ("policy converts packet sentinel key down to Hangul toggle", PolicyConvertsPacketSentinelKeyDownToHangulToggle),
     ("policy suppresses packet sentinel key up without reinjecting", PolicySuppressesPacketSentinelKeyUp),
+    ("policy maps uppercase packet QWERTOP to shifted QWERTY scancodes", PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes),
+    ("policy maps lowercase packet letter to unshifted QWERTY scancode", PolicyMapsLowercasePacketLetterToUnshiftedQwertyScancode),
     ("policy loop guards own Hangul reinjection", PolicyLoopGuardsOwnHangulReinjection),
     ("policy toggles on Ctrl+Alt+H", PolicyTogglesOnHotkey),
     ("diagnostics forwards redacted records when sensitive logging disabled", DiagnosticsForwardsRedactedRecordsWhenSensitiveLoggingDisabled),
     ("diagnostics writes sensitive records when enabled", DiagnosticsWritesSensitiveRecordsWhenEnabled),
+    ("diagnostics event sink retains recent records", DiagnosticsEventSinkRetainsRecentRecords),
     ("counters do not retain last key", CountersDoNotRetainLastKey),
     ("send input result accepts expected Shift mock count", SendInputResultAcceptsExpectedShiftMockCount),
     ("app state toggles atomically", AppStateToggles)
@@ -39,6 +43,13 @@ static void ClassifierAcceptsSteamCandidate()
     var score = new SteamInputClassifier().Score(Key('G', 0x22));
     Assert(score.Score == 6, $"expected score 6, got {score.Score}");
     Assert(score.IsCandidate, "expected candidate");
+}
+
+static void ClassifierAcceptsInjectedPacketAsciiLettersWithoutLowerIntegrity()
+{
+    var score = new SteamInputClassifier().Score(Packet('Q', flags: LowLevelKeyboardFlags.Injected));
+    Assert(score.Score == 6, $"expected score 6, got {score.Score}");
+    Assert(score.IsCandidate, "injected packet ASCII letter must be a candidate");
 }
 
 static void ClassifierIgnoresOwnMarker()
@@ -117,7 +128,7 @@ static void PolicyConvertsPacketSentinelKeyDownToHangulToggle()
     var evt = VirtualKey(
         (ushort)VirtualKeys.VK_PACKET,
         SupportedKeyPolicy.HangulToggleSentinelScanCode,
-        flags: LowLevelKeyboardFlags.Injected | LowLevelKeyboardFlags.LowerIntegrityInjected);
+        flags: LowLevelKeyboardFlags.Injected);
     var decision = new SuppressionPolicy().Decide(evt, NoModifiers(), enabled: true, classifier.Score(evt));
     Assert(decision.Action == BridgeAction.SuppressAndSendHangulToggle, $"got {decision.Action}");
 }
@@ -129,9 +140,46 @@ static void PolicySuppressesPacketSentinelKeyUp()
         (ushort)VirtualKeys.VK_PACKET,
         SupportedKeyPolicy.HangulToggleSentinelScanCode,
         WindowMessages.WM_KEYUP,
-        LowLevelKeyboardFlags.Injected | LowLevelKeyboardFlags.LowerIntegrityInjected | LowLevelKeyboardFlags.Up);
+        LowLevelKeyboardFlags.Injected | LowLevelKeyboardFlags.Up);
     var decision = new SuppressionPolicy().Decide(evt, NoModifiers(), enabled: true, classifier.Score(evt));
     Assert(decision.Action == BridgeAction.SuppressOnly, $"got {decision.Action}");
+}
+
+static void PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes()
+{
+    var classifier = new SteamInputClassifier();
+    var expected = new (char Key, ushort ScanCode)[]
+    {
+        ('Q', 0x10),
+        ('W', 0x11),
+        ('E', 0x12),
+        ('R', 0x13),
+        ('T', 0x14),
+        ('O', 0x18),
+        ('P', 0x19)
+    };
+
+    foreach (var item in expected)
+    {
+        var evt = Packet(item.Key, flags: LowLevelKeyboardFlags.Injected);
+        var decision = new SuppressionPolicy().Decide(evt, NoModifiers(), enabled: true, classifier.Score(evt));
+        Assert(decision.Action == BridgeAction.SuppressAndReinject, $"got {decision.Action}");
+        Assert(decision.MockShift, $"packet {item.Key} must mock Shift");
+        Assert(decision.ReinjectVirtualKey == item.Key, $"packet {item.Key} must reinject VK {item.Key}");
+        Assert(decision.ReinjectScanCode == item.ScanCode, $"packet {item.Key} must reinject scan 0x{item.ScanCode:X2}");
+        Assert(decision.ReinjectExtended == false, $"packet {item.Key} must not be extended");
+    }
+}
+
+static void PolicyMapsLowercasePacketLetterToUnshiftedQwertyScancode()
+{
+    var classifier = new SteamInputClassifier();
+    var evt = Packet('q', flags: LowLevelKeyboardFlags.Injected);
+    var decision = new SuppressionPolicy().Decide(evt, NoModifiers(), enabled: true, classifier.Score(evt));
+    Assert(decision.Action == BridgeAction.SuppressAndReinject, $"got {decision.Action}");
+    Assert(!decision.MockShift, "lowercase packet letter must not mock Shift");
+    Assert(decision.ReinjectVirtualKey == 'Q', "lowercase packet q must normalize to VK Q");
+    Assert(decision.ReinjectScanCode == 0x10, "lowercase packet q must reinject Q scancode");
 }
 
 static void PolicyLoopGuardsOwnHangulReinjection()
@@ -180,6 +228,25 @@ static void DiagnosticsWritesSensitiveRecordsWhenEnabled()
     Assert(record.Vk is null && record.ScanCode is null, "source sensitive record must be scrubbed after write");
 }
 
+static void DiagnosticsEventSinkRetainsRecentRecords()
+{
+    var eventSink = new EventDiagnosticSink(() => true);
+    var composite = new CompositeDiagnosticSink(eventSink);
+    var record = InputDiagnosticRecord.FromDecision(
+        Packet('Q', flags: LowLevelKeyboardFlags.Injected),
+        new CandidateScore(6, ["injected", "packet_ascii_key", "supported_key"], 6),
+        new BridgeDecision(BridgeAction.SuppressAndReinject, "candidate_key_down"));
+
+    Assert(composite.TryWrite(record), "event sink must accept diagnostic records");
+    var snapshot = eventSink.Snapshot();
+    Assert(snapshot.Count == 1, $"expected one retained record, got {snapshot.Count}");
+    Assert(snapshot[0].Vk == VirtualKeys.VK_PACKET, "enabled event sink must retain key data");
+
+    eventSink.ClearSensitiveFields();
+    snapshot = eventSink.Snapshot();
+    Assert(snapshot[0].Vk is null && snapshot[0].Action == BridgeAction.SuppressAndReinject.ToString(), "clearing history must preserve action but remove key data");
+}
+
 static void CountersDoNotRetainLastKey()
 {
     var counters = new BridgeCounters();
@@ -211,6 +278,13 @@ static LowLevelKeyboardEvent Key(
     LowLevelKeyboardFlags flags = LowLevelKeyboardFlags.Injected | LowLevelKeyboardFlags.LowerIntegrityInjected,
     UIntPtr extraInfo = default) =>
     VirtualKey((ushort)vk, scanCode, message, flags, extraInfo);
+
+static LowLevelKeyboardEvent Packet(
+    char codePoint,
+    int message = WindowMessages.WM_KEYDOWN,
+    LowLevelKeyboardFlags flags = LowLevelKeyboardFlags.Injected | LowLevelKeyboardFlags.LowerIntegrityInjected,
+    UIntPtr extraInfo = default) =>
+    VirtualKey((ushort)VirtualKeys.VK_PACKET, (ushort)codePoint, message, flags, extraInfo);
 
 static LowLevelKeyboardEvent VirtualKey(
     ushort vk,

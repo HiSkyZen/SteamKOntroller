@@ -31,6 +31,12 @@ public sealed class SteamInputClassifier
             reasons.Add("lower_il_injected");
         }
 
+        if (keyboardEvent.IsInjected && SupportedKeyPolicy.IsPacketAsciiLetter(keyboardEvent))
+        {
+            score += 3;
+            reasons.Add("packet_ascii_key");
+        }
+
         if (SupportedKeyPolicy.IsSupported(keyboardEvent))
         {
             score += 1;

@@ -1,6 +1,5 @@
 using SteamKOntroller.Core.Capture;
 using SteamKOntroller.Core.Classification;
-using SteamKOntroller.Core.Native;
 using SteamKOntroller.Core.Reinject;
 
 namespace SteamKOntroller.Core.Policy;
@@ -33,11 +32,6 @@ public sealed class SuppressionPolicy
             return BridgeDecision.PassThrough("unsupported_key");
         }
 
-        if (!score.IsCandidate)
-        {
-            return BridgeDecision.PassThrough("not_steam_candidate");
-        }
-
         if (SupportedKeyPolicy.IsHangulToggleSentinel(keyboardEvent))
         {
             return keyboardEvent.IsKeyUp
@@ -45,16 +39,32 @@ public sealed class SuppressionPolicy
                 : new BridgeDecision(BridgeAction.SuppressAndSendHangulToggle, "packet_hangul_toggle_key_down");
         }
 
+        if (!score.IsCandidate)
+        {
+            return BridgeDecision.PassThrough("not_steam_candidate");
+        }
+
         if (modifiers.HasShortcutModifier)
         {
             return BridgeDecision.PassThrough("shortcut_modifier");
         }
+
+        if (!SupportedKeyPolicy.TryGetReinjectTarget(keyboardEvent, out var target))
+        {
+            return BridgeDecision.PassThrough("unsupported_key");
+        }
+
+        var mockShift = (modifiers.Shift || target.Shifted) &&
+                        SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey);
 
         return keyboardEvent.IsKeyUp
             ? new BridgeDecision(BridgeAction.SuppressOnly, "candidate_key_up")
             : new BridgeDecision(
                 BridgeAction.SuppressAndReinject,
                 "candidate_key_down",
-                MockShift: modifiers.Shift && SupportedKeyPolicy.ShouldMockShiftForHangulJamo(keyboardEvent.VirtualKey));
+                MockShift: mockShift,
+                ReinjectVirtualKey: target.VirtualKey,
+                ReinjectScanCode: target.ScanCode,
+                ReinjectExtended: target.Extended);
     }
 }

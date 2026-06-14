@@ -75,28 +75,25 @@ public sealed class SteamInputBridge : IDisposable
             _counters.IncrementSteamCandidates();
         }
 
+        WriteSensitiveDiagnostic(keyboardEvent, score, decision);
+
         switch (decision.Action)
         {
             case BridgeAction.LoopGuarded:
                 _counters.IncrementLoopGuarded();
-                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 return false;
 
             case BridgeAction.Toggle:
                 var enabled = _state.ToggleEnabled();
-                WriteSensitiveDiagnostic(
-                    keyboardEvent,
-                    score,
-                    decision with { Reason = enabled ? "enabled" : "disabled" });
+                _diagnostics.TryWrite(InputDiagnosticRecord.Status("toggle", enabled ? "enabled" : "disabled"));
                 return false;
 
             case BridgeAction.SuppressAndReinject:
                 _counters.IncrementSuppressed();
-                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 if (!_reinjector.TryEnqueueTap(
-                    keyboardEvent.VirtualKey,
-                    keyboardEvent.ScanCode,
-                    keyboardEvent.IsExtended,
+                    decision.ReinjectVirtualKey ?? keyboardEvent.VirtualKey,
+                    decision.ReinjectScanCode ?? keyboardEvent.ScanCode,
+                    decision.ReinjectExtended ?? keyboardEvent.IsExtended,
                     decision.MockShift))
                 {
                     _counters.IncrementSendInputFailures();
@@ -110,7 +107,6 @@ public sealed class SteamInputBridge : IDisposable
 
             case BridgeAction.SuppressAndSendHangulToggle:
                 _counters.IncrementSuppressed();
-                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 if (!_reinjector.TryEnqueueVirtualKeyTap(VirtualKeys.VK_HANGUL))
                 {
                     _counters.IncrementSendInputFailures();
@@ -124,15 +120,9 @@ public sealed class SteamInputBridge : IDisposable
 
             case BridgeAction.SuppressOnly:
                 _counters.IncrementSuppressed();
-                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 return true;
 
             default:
-                if (score.IsCandidate)
-                {
-                    WriteSensitiveDiagnostic(keyboardEvent, score, decision);
-                }
-
                 return false;
         }
     }

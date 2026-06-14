@@ -36,6 +36,7 @@ public sealed partial class MainPage : Page
         _runtime.RecordWritten += OnRecordWritten;
         _runtime.State.EnabledChanged += OnEnabledChanged;
         _runtime.SettingsChanged += OnSettingsChanged;
+        LoadRecentRecords();
         _timer.Start();
         RefreshStatus();
     }
@@ -63,18 +64,42 @@ public sealed partial class MainPage : Page
         var recordView = new DiagnosticRecordView(record);
         DispatcherQueue.TryEnqueue(() =>
         {
-            Records.Add(recordView);
-            while (Records.Count > 300)
-            {
-                Records[0].ClearSensitiveFields();
-                Records.RemoveAt(0);
-            }
-
-            if (EventList.Items.Count > 0)
-            {
-                EventList.ScrollIntoView(EventList.Items[^1]);
-            }
+            AddRecordView(recordView);
+            ScrollToLastRecord();
         });
+    }
+
+    private void LoadRecentRecords()
+    {
+        if (Records.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var record in _runtime.RecentRecords)
+        {
+            AddRecordView(new DiagnosticRecordView(record));
+        }
+
+        ScrollToLastRecord();
+    }
+
+    private void AddRecordView(DiagnosticRecordView recordView)
+    {
+        Records.Add(recordView);
+        while (Records.Count > 300)
+        {
+            Records[0].ClearSensitiveFields();
+            Records.RemoveAt(0);
+        }
+    }
+
+    private void ScrollToLastRecord()
+    {
+        if (EventList.Items.Count > 0)
+        {
+            EventList.ScrollIntoView(EventList.Items[^1]);
+        }
     }
 
     private void RefreshStatus()
@@ -112,8 +137,8 @@ public sealed partial class MainPage : Page
         DiagnosticsInfo.Severity = diagnosticsEnabled ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
         DiagnosticsInfo.Title = diagnosticsEnabled ? "진단 로그가 켜져 있습니다" : "진단 로그가 꺼져 있습니다";
         DiagnosticsInfo.Message = diagnosticsEnabled
-            ? $"현재 폴더: {_runtime.LogDirectory}"
-            : "로그를 켤 때까지 상세 입력 이벤트를 디스크에 저장하지 않습니다.";
+            ? $"상세 입력 이벤트를 진단 탭과 디스크에 기록합니다. 현재 폴더: {_runtime.LogDirectory}"
+            : "디스크 로그는 꺼져 있습니다. 진단 탭에는 키값을 제거한 이벤트만 표시합니다.";
 
         EnabledText.Text = enabled ? "켬" : "끔";
         HookText.Text = snapshot.HookInstalled ? "설치됨" : "중지됨";
