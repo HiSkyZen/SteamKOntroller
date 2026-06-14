@@ -10,6 +10,7 @@ var tests = new (string Name, Action Body)[]
 {
     ("classifier accepts lower-integrity injected supported keys", ClassifierAcceptsSteamCandidate),
     ("classifier accepts injected packet ASCII letters without lower-integrity", ClassifierAcceptsInjectedPacketAsciiLettersWithoutLowerIntegrity),
+    ("classifier accepts injected packet ASCII symbols without lower-integrity", ClassifierAcceptsInjectedPacketAsciiSymbolsWithoutLowerIntegrity),
     ("classifier ignores own reinjected marker", ClassifierIgnoresOwnMarker),
     ("policy suppresses candidate key down and reinjects", PolicySuppressesCandidateKeyDown),
     ("policy marks shifted Hangul double jamo keys for Shift mock", PolicyMarksShiftedHangulDoubleJamoKeysForShiftMock),
@@ -22,6 +23,7 @@ var tests = new (string Name, Action Body)[]
     ("policy suppresses packet sentinel key up without reinjecting", PolicySuppressesPacketSentinelKeyUp),
     ("policy maps uppercase packet QWERTOP to shifted QWERTY scancodes", PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes),
     ("policy maps lowercase packet letter to unshifted QWERTY scancode", PolicyMapsLowercasePacketLetterToUnshiftedQwertyScancode),
+    ("policy maps packet symbols to QWERTY scancodes", PolicyMapsPacketSymbolsToQwertyScancodes),
     ("policy loop guards own Hangul reinjection", PolicyLoopGuardsOwnHangulReinjection),
     ("policy toggles on Ctrl+Alt+H", PolicyTogglesOnHotkey),
     ("diagnostics forwards redacted records when sensitive logging disabled", DiagnosticsForwardsRedactedRecordsWhenSensitiveLoggingDisabled),
@@ -50,6 +52,13 @@ static void ClassifierAcceptsInjectedPacketAsciiLettersWithoutLowerIntegrity()
     var score = new SteamInputClassifier().Score(Packet('Q', flags: LowLevelKeyboardFlags.Injected));
     Assert(score.Score == 6, $"expected score 6, got {score.Score}");
     Assert(score.IsCandidate, "injected packet ASCII letter must be a candidate");
+}
+
+static void ClassifierAcceptsInjectedPacketAsciiSymbolsWithoutLowerIntegrity()
+{
+    var score = new SteamInputClassifier().Score(Packet('!', flags: LowLevelKeyboardFlags.Injected));
+    Assert(score.Score == 6, $"expected score 6, got {score.Score}");
+    Assert(score.IsCandidate, "injected packet ASCII symbol must be a candidate");
 }
 
 static void ClassifierIgnoresOwnMarker()
@@ -180,6 +189,24 @@ static void PolicyMapsLowercasePacketLetterToUnshiftedQwertyScancode()
     Assert(!decision.MockShift, "lowercase packet letter must not mock Shift");
     Assert(decision.ReinjectVirtualKey == 'Q', "lowercase packet q must normalize to VK Q");
     Assert(decision.ReinjectScanCode == 0x10, "lowercase packet q must reinject Q scancode");
+}
+
+static void PolicyMapsPacketSymbolsToQwertyScancodes()
+{
+    var classifier = new SteamInputClassifier();
+    var shifted = Packet('!', flags: LowLevelKeyboardFlags.Injected);
+    var shiftedDecision = new SuppressionPolicy().Decide(shifted, NoModifiers(), enabled: true, classifier.Score(shifted));
+    Assert(shiftedDecision.Action == BridgeAction.SuppressAndReinject, $"got {shiftedDecision.Action}");
+    Assert(shiftedDecision.MockShift, "packet ! must mock Shift");
+    Assert(shiftedDecision.ReinjectVirtualKey == '1', "packet ! must reinject VK 1");
+    Assert(shiftedDecision.ReinjectScanCode == 0x02, "packet ! must reinject 1 scancode");
+
+    var unshifted = Packet('.', flags: LowLevelKeyboardFlags.Injected);
+    var unshiftedDecision = new SuppressionPolicy().Decide(unshifted, NoModifiers(), enabled: true, classifier.Score(unshifted));
+    Assert(unshiftedDecision.Action == BridgeAction.SuppressAndReinject, $"got {unshiftedDecision.Action}");
+    Assert(!unshiftedDecision.MockShift, "packet . must not mock Shift");
+    Assert(unshiftedDecision.ReinjectVirtualKey == 0xBE, "packet . must reinject VK OEM_PERIOD");
+    Assert(unshiftedDecision.ReinjectScanCode == 0x34, "packet . must reinject period scancode");
 }
 
 static void PolicyLoopGuardsOwnHangulReinjection()

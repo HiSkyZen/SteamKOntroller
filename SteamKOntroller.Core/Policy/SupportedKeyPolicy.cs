@@ -24,6 +24,10 @@ public static class SupportedKeyPolicy
         keyboardEvent.VirtualKey == VirtualKeys.VK_PACKET &&
         IsAsciiLetterCode(keyboardEvent.ScanCode);
 
+    public static bool IsPacketAsciiSymbol(LowLevelKeyboardEvent keyboardEvent) =>
+        keyboardEvent.VirtualKey == VirtualKeys.VK_PACKET &&
+        TryGetSymbolKey((char)keyboardEvent.ScanCode, out _);
+
     public static bool TryGetReinjectTarget(
         LowLevelKeyboardEvent keyboardEvent,
         out ReinjectKeyTarget target)
@@ -36,6 +40,13 @@ public static class SupportedKeyPolicy
                 packetScanCode,
                 Extended: false,
                 Shifted: packetShifted);
+            return true;
+        }
+
+        if (keyboardEvent.VirtualKey == VirtualKeys.VK_PACKET &&
+            TryGetSymbolKey((char)keyboardEvent.ScanCode, out var symbolTarget))
+        {
+            target = symbolTarget;
             return true;
         }
 
@@ -113,6 +124,65 @@ public static class SupportedKeyPolicy
 
     private static bool IsAsciiLetterCode(ushort code) =>
         code is >= (ushort)'A' and <= (ushort)'Z' or >= (ushort)'a' and <= (ushort)'z';
+
+    private static bool TryGetSymbolKey(char symbol, out ReinjectKeyTarget target)
+    {
+        var mapped = symbol switch
+        {
+            '0' => ((ushort)'0', (ushort)0x0B, false),
+            '1' => ((ushort)'1', (ushort)0x02, false),
+            '2' => ((ushort)'2', (ushort)0x03, false),
+            '3' => ((ushort)'3', (ushort)0x04, false),
+            '4' => ((ushort)'4', (ushort)0x05, false),
+            '5' => ((ushort)'5', (ushort)0x06, false),
+            '6' => ((ushort)'6', (ushort)0x07, false),
+            '7' => ((ushort)'7', (ushort)0x08, false),
+            '8' => ((ushort)'8', (ushort)0x09, false),
+            '9' => ((ushort)'9', (ushort)0x0A, false),
+            ')' => ((ushort)'0', (ushort)0x0B, true),
+            '!' => ((ushort)'1', (ushort)0x02, true),
+            '@' => ((ushort)'2', (ushort)0x03, true),
+            '#' => ((ushort)'3', (ushort)0x04, true),
+            '$' => ((ushort)'4', (ushort)0x05, true),
+            '%' => ((ushort)'5', (ushort)0x06, true),
+            '^' => ((ushort)'6', (ushort)0x07, true),
+            '&' => ((ushort)'7', (ushort)0x08, true),
+            '*' => ((ushort)'8', (ushort)0x09, true),
+            '(' => ((ushort)'9', (ushort)0x0A, true),
+            '-' => ((ushort)0xBD, (ushort)0x0C, false),
+            '_' => ((ushort)0xBD, (ushort)0x0C, true),
+            '=' => ((ushort)0xBB, (ushort)0x0D, false),
+            '+' => ((ushort)0xBB, (ushort)0x0D, true),
+            '[' => ((ushort)0xDB, (ushort)0x1A, false),
+            '{' => ((ushort)0xDB, (ushort)0x1A, true),
+            ']' => ((ushort)0xDD, (ushort)0x1B, false),
+            '}' => ((ushort)0xDD, (ushort)0x1B, true),
+            '\\' => ((ushort)0xDC, (ushort)0x2B, false),
+            '|' => ((ushort)0xDC, (ushort)0x2B, true),
+            ';' => ((ushort)0xBA, (ushort)0x27, false),
+            ':' => ((ushort)0xBA, (ushort)0x27, true),
+            '\'' => ((ushort)0xDE, (ushort)0x28, false),
+            '"' => ((ushort)0xDE, (ushort)0x28, true),
+            ',' => ((ushort)0xBC, (ushort)0x33, false),
+            '<' => ((ushort)0xBC, (ushort)0x33, true),
+            '.' => ((ushort)0xBE, (ushort)0x34, false),
+            '>' => ((ushort)0xBE, (ushort)0x34, true),
+            '/' => ((ushort)0xBF, (ushort)0x35, false),
+            '?' => ((ushort)0xBF, (ushort)0x35, true),
+            '`' => ((ushort)0xC0, (ushort)0x29, false),
+            '~' => ((ushort)0xC0, (ushort)0x29, true),
+            _ => default
+        };
+
+        if (mapped == default)
+        {
+            target = default;
+            return false;
+        }
+
+        target = new ReinjectKeyTarget(mapped.Item1, mapped.Item2, Extended: false, Shifted: mapped.Item3);
+        return true;
+    }
 
     private static bool TryGetLetterScanCode(ushort virtualKey, out ushort scanCode)
     {

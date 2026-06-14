@@ -1,5 +1,6 @@
 using SteamKOntroller.Core.Capture;
 using SteamKOntroller.Core.Classification;
+using SteamKOntroller.Core.Native;
 using SteamKOntroller.Core.Reinject;
 
 namespace SteamKOntroller.Core.Policy;
@@ -54,8 +55,10 @@ public sealed class SuppressionPolicy
             return BridgeDecision.PassThrough("unsupported_key");
         }
 
-        var mockShift = (modifiers.Shift || target.Shifted) &&
-                        SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey);
+        var mockShift = target.Shifted
+            ? !VirtualKeys.IsAsciiLetter(target.VirtualKey) ||
+              SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey)
+            : modifiers.Shift && SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey);
 
         return keyboardEvent.IsKeyUp
             ? new BridgeDecision(BridgeAction.SuppressOnly, "candidate_key_up")
