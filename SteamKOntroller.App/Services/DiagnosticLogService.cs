@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Channels;
 using SteamKOntroller.Core.Diagnostics;
@@ -14,7 +13,6 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
     private readonly Task _writerTask;
     private readonly JsonSerializerOptions _options = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = false
     };
     private int _enabled;
@@ -35,8 +33,8 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
         _retentionDays = AppSettingsStore.ClampRetentionDays(retentionDays);
         _channel = Channel.CreateBounded<DiagnosticLogWorkItem>(new BoundedChannelOptions(4096)
         {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true,
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleReader = false,
             SingleWriter = false
         });
         _writerTask = Task.Run(WriteLoopAsync);
@@ -45,12 +43,33 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
 
     public string DirectoryPath { get; }
     public bool IsEnabled => Volatile.Read(ref _enabled) == 1;
+    public bool IsSensitiveInputEnabled => IsEnabled;
     public int RetentionDays => Volatile.Read(ref _retentionDays);
     public string? CurrentPath => Volatile.Read(ref _currentPath);
 
     public bool TryWrite(InputDiagnosticRecord record)
     {
-        return IsEnabled && _channel.Writer.TryWrite(DiagnosticLogWorkItem.ForRecord(record));
+        if (!IsEnabled)
+        {
+            if (record.ContainsSensitiveInput)
+            {
+                record.ClearSensitiveFields();
+            }
+
+            return false;
+        }
+
+        if (_channel.Writer.TryWrite(DiagnosticLogWorkItem.ForRecord(record)))
+        {
+            return true;
+        }
+
+        if (record.ContainsSensitiveInput)
+        {
+            record.ClearSensitiveFields();
+        }
+
+        return false;
     }
 
     public void SetEnabled(bool enabled)
@@ -60,6 +79,11 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
         if (previous == value)
         {
             return;
+        }
+
+        if (!enabled)
+        {
+            ClearPendingRecords();
         }
 
         _channel.Writer.TryWrite(enabled
@@ -102,12 +126,14 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
                     case DiagnosticLogWorkItemKind.Record:
                         if (!IsEnabled || item.Record is null)
                         {
+                            item.ClearSensitiveReference();
                             break;
                         }
 
                         EnsureWriter(ref stream, ref writer, ref activePath);
                         await writer!.WriteLineAsync(JsonSerializer.Serialize(item.Record, _options));
                         await writer.FlushAsync();
+                        item.ClearSensitiveReference();
                         if (stream!.Length >= MaxLogFileBytes)
                         {
                             CloseWriter(ref stream, ref writer, ref activePath, compress: true);
@@ -144,8 +170,16 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
 
         activePath = CreateLogPath();
         Volatile.Write(ref _currentPath, activePath);
-        stream = new FileStream(activePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+        stream = new FileStream(activePath, FileMode.Append, FileAccess.Write, FileShare.Read);
         writer = new StreamWriter(stream);
+    }
+
+    private void ClearPendingRecords()
+    {
+        while (_channel.Reader.TryRead(out var item))
+        {
+            item.ClearSensitiveReference();
+        }
     }
 
     private void CloseWriter(
@@ -263,15 +297,32 @@ internal sealed class DiagnosticLogService : IInputDiagnosticSink, IDisposable
         Maintenance
     }
 
-    private sealed record DiagnosticLogWorkItem(
-        DiagnosticLogWorkItemKind Kind,
-        InputDiagnosticRecord? Record = null)
+    private sealed class DiagnosticLogWorkItem
     {
+        private DiagnosticLogWorkItem(DiagnosticLogWorkItemKind kind, InputDiagnosticRecord? record = null)
+        {
+            Kind = kind;
+            Record = record;
+        }
+
+        public DiagnosticLogWorkItemKind Kind { get; }
+        public InputDiagnosticRecord? Record { get; private set; }
+
         public static DiagnosticLogWorkItem ForRecord(InputDiagnosticRecord record) => new(
             DiagnosticLogWorkItemKind.Record,
             record);
 
         public static DiagnosticLogWorkItem CloseCurrent() => new(DiagnosticLogWorkItemKind.CloseCurrent);
         public static DiagnosticLogWorkItem Maintenance() => new(DiagnosticLogWorkItemKind.Maintenance);
+
+        public void ClearSensitiveReference()
+        {
+            if (Record?.ContainsSensitiveInput == true)
+            {
+                Record.ClearSensitiveFields();
+            }
+
+            Record = null;
+        }
     }
 }

@@ -4,23 +4,40 @@ namespace SteamKOntroller.InputProbe.Logging;
 
 public sealed class InputEventRecord
 {
-    public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.Now;
-    public string Source { get; init; } = string.Empty;
-    public string Message { get; init; } = string.Empty;
-    public string? Direction { get; init; }
-    public int? VirtualKey { get; init; }
-    public int? ScanCode { get; init; }
-    public string? Character { get; init; }
-    public string? CodePoint { get; init; }
-    public string? FlagsHex { get; init; }
-    public bool? Injected { get; init; }
-    public bool? LowerIntegrityInjected { get; init; }
-    public string? DeviceHandle { get; init; }
-    public string? DeviceName { get; init; }
-    public string? ExtraInfoHex { get; init; }
-    public string? TextSnapshot { get; init; }
-    public string? Note { get; init; }
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
+    public string Source { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? Direction { get; set; }
+    public int? VirtualKey { get; set; }
+    public int? ScanCode { get; set; }
+    public string? Character { get; set; }
+    public string? CodePoint { get; set; }
+    public string? FlagsHex { get; set; }
+    public bool? Injected { get; set; }
+    public bool? LowerIntegrityInjected { get; set; }
+    public string? DeviceHandle { get; set; }
+    public string? DeviceName { get; set; }
+    public string? ExtraInfoHex { get; set; }
+    public string? TextSnapshot { get; set; }
+    public string? Note { get; set; }
 
     [JsonIgnore]
     public string DisplayTime => Timestamp.ToString("HH:mm:ss.fff");
+
+    public void ClearSensitiveFields()
+    {
+        Direction = null;
+        VirtualKey = null;
+        ScanCode = null;
+        Character = null;
+        CodePoint = null;
+        FlagsHex = null;
+        Injected = null;
+        LowerIntegrityInjected = null;
+        DeviceHandle = null;
+        DeviceName = null;
+        ExtraInfoHex = null;
+        TextSnapshot = null;
+        Note = null;
+    }
 }

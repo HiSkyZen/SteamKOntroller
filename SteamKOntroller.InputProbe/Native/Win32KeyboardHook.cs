@@ -20,6 +20,8 @@ public sealed class Win32KeyboardHook : IDisposable
 
     public event EventHandler<InputEventRecord>? KeyboardEvent;
 
+    public Func<bool>? ShouldCapture { get; set; }
+
     public Win32KeyboardHook()
     {
         _proc = HookCallback;
@@ -60,7 +62,7 @@ public sealed class Win32KeyboardHook : IDisposable
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode == HC_ACTION)
+        if (nCode == HC_ACTION && (ShouldCapture?.Invoke() ?? true))
         {
             var info = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
             var flags = unchecked((int)info.flags);

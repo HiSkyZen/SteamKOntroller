@@ -15,9 +15,12 @@ public sealed class MainForm : Form
     private readonly DataGridView _grid = new();
     private readonly Label _statusLabel = new();
     private readonly CheckBox _autoScrollCheck = new();
+    private readonly CheckBox _enableSensitiveLoggingCheck = new();
+    private readonly CheckBox _includeTextSnapshotCheck = new();
     private readonly CheckBox _logWindowMessagesCheck = new();
     private readonly CheckBox _logHookCheck = new();
     private readonly CheckBox _logRawCheck = new();
+    private Button? _copyButton;
     private bool _rawRegistered;
 
     public MainForm()
@@ -38,16 +41,18 @@ public sealed class MainForm : Form
 
         BuildUi(logPath);
 
+        _keyboardHook.ShouldCapture = IsSensitiveLoggingEnabled;
         _inputBox.ProbeWindowMessage += (_, record) => LogRecord(record);
 
         _keyboardHook.KeyboardEvent += (_, record) =>
         {
-            if (!_logHookCheck.Checked)
+            if (!IsSensitiveLoggingEnabled() || !_logHookCheck.Checked)
             {
+                record.ClearSensitiveFields();
                 return;
             }
 
-            record = CopyWithTextSnapshot(record, _inputBox.Text);
+            record = CopyWithTextSnapshot(record, GetTextSnapshot());
             LogRecordThreadSafe(record);
         };
 
@@ -66,9 +71,9 @@ public sealed class MainForm : Form
 
     protected override void WndProc(ref Message m)
     {
-        if (m.Msg == WindowMessageNames.WM_INPUT && _logRawCheck.Checked)
+        if (m.Msg == WindowMessageNames.WM_INPUT && IsSensitiveLoggingEnabled() && _logRawCheck.Checked)
         {
-            var record = RawInput.TryReadKeyboardInput(m.LParam, _inputBox.Text, out var error);
+            var record = RawInput.TryReadKeyboardInput(m.LParam, GetTextSnapshot(), out var error);
             if (record is not null)
             {
                 LogRecord(record);
@@ -81,7 +86,7 @@ public sealed class MainForm : Form
                     Source = "raw",
                     Message = "WM_INPUT",
                     Note = error,
-                    TextSnapshot = _inputBox.Text
+                    TextSnapshot = GetTextSnapshot()
                 });
             }
         }
@@ -114,7 +119,7 @@ public sealed class MainForm : Form
         root.Controls.Add(toolbar, 0, 0);
 
         var clearButton = new Button { Text = "Clear", Width = 80, Height = 28 };
-        clearButton.Click += (_, _) => _records.Clear();
+        clearButton.Click += (_, _) => ClearRecords();
         toolbar.Controls.Add(clearButton);
 
         var openLogButton = new Button { Text = "Open log folder", Width = 120, Height = 28 };
@@ -125,24 +130,47 @@ public sealed class MainForm : Form
         });
         toolbar.Controls.Add(openLogButton);
 
-        var copyButton = new Button { Text = "Copy visible rows", Width = 130, Height = 28 };
-        copyButton.Click += (_, _) => CopyVisibleRowsToClipboard();
-        toolbar.Controls.Add(copyButton);
+        _copyButton = new Button { Text = "Copy visible rows", Width = 130, Height = 28 };
+        _copyButton.Click += (_, _) => CopyVisibleRowsToClipboard();
+        toolbar.Controls.Add(_copyButton);
+
+        _enableSensitiveLoggingCheck.Text = "Sensitive logging";
+        _enableSensitiveLoggingCheck.Checked = false;
+        _enableSensitiveLoggingCheck.AutoSize = true;
+        _enableSensitiveLoggingCheck.Margin = new Padding(16, 7, 4, 4);
+        _enableSensitiveLoggingCheck.CheckedChanged += (_, _) =>
+        {
+            if (!IsSensitiveLoggingEnabled())
+            {
+                ClearRecords();
+                _inputBox.Clear();
+                _logger.Close();
+            }
+
+            UpdateCaptureUi(logPath);
+        };
+        toolbar.Controls.Add(_enableSensitiveLoggingCheck);
+
+        _includeTextSnapshotCheck.Text = "Text snapshot";
+        _includeTextSnapshotCheck.Checked = false;
+        _includeTextSnapshotCheck.AutoSize = true;
+        _includeTextSnapshotCheck.Margin = new Padding(8, 7, 4, 4);
+        toolbar.Controls.Add(_includeTextSnapshotCheck);
 
         _logRawCheck.Text = "Raw Input";
-        _logRawCheck.Checked = true;
+        _logRawCheck.Checked = false;
         _logRawCheck.AutoSize = true;
-        _logRawCheck.Margin = new Padding(16, 7, 4, 4);
+        _logRawCheck.Margin = new Padding(8, 7, 4, 4);
         toolbar.Controls.Add(_logRawCheck);
 
         _logHookCheck.Text = "Low-level hook";
-        _logHookCheck.Checked = true;
+        _logHookCheck.Checked = false;
         _logHookCheck.AutoSize = true;
         _logHookCheck.Margin = new Padding(8, 7, 4, 4);
         toolbar.Controls.Add(_logHookCheck);
 
         _logWindowMessagesCheck.Text = "TextBox WndProc";
-        _logWindowMessagesCheck.Checked = true;
+        _logWindowMessagesCheck.Checked = false;
         _logWindowMessagesCheck.AutoSize = true;
         _logWindowMessagesCheck.Margin = new Padding(8, 7, 4, 4);
         toolbar.Controls.Add(_logWindowMessagesCheck);
@@ -160,7 +188,8 @@ public sealed class MainForm : Form
         _inputBox.AcceptsTab = true;
         _inputBox.Font = new Font("Consolas", 13f);
         _inputBox.PlaceholderText = "Focus here, then type with physical keyboard / Steam Keyboard / IME...";
-        _inputBox.ShouldLog = () => _logWindowMessagesCheck.Checked;
+        _inputBox.ShouldLog = () => IsSensitiveLoggingEnabled() && _logWindowMessagesCheck.Checked;
+        _inputBox.TextSnapshotProvider = GetTextSnapshot;
         root.Controls.Add(_inputBox, 0, 1);
 
         _grid.Dock = DockStyle.Fill;
@@ -184,8 +213,8 @@ public sealed class MainForm : Form
         root.Controls.Add(legend, 0, 3);
 
         _statusLabel.Dock = DockStyle.Fill;
-        _statusLabel.Text = $"Log: {logPath}";
         root.Controls.Add(_statusLabel, 0, 4);
+        UpdateCaptureUi(logPath);
     }
 
     private void AddColumns()
@@ -216,7 +245,7 @@ public sealed class MainForm : Form
         {
             RawInput.RegisterKeyboard(Handle);
             _rawRegistered = true;
-            _statusLabel.Text = $"Raw Input registered. Log: {_logger.Path}";
+            UpdateCaptureUi(_logger.Path);
         }
         catch (Exception ex)
         {
@@ -269,12 +298,19 @@ public sealed class MainForm : Form
 
     private void LogRecord(InputEventRecord record)
     {
+        if (!IsSensitiveLoggingEnabled())
+        {
+            record.ClearSensitiveFields();
+            return;
+        }
+
         _logger.Write(record);
         _records.Add(record);
 
         const int maxRows = 5000;
         while (_records.Count > maxRows)
         {
+            _records[0].ClearSensitiveFields();
             _records.RemoveAt(0);
         }
 
@@ -286,9 +322,19 @@ public sealed class MainForm : Form
         }
     }
 
+    private void ClearRecords()
+    {
+        foreach (var record in _records)
+        {
+            record.ClearSensitiveFields();
+        }
+
+        _records.Clear();
+    }
+
     private void CopyVisibleRowsToClipboard()
     {
-        if (_records.Count == 0)
+        if (!IsSensitiveLoggingEnabled() || _records.Count == 0)
         {
             return;
         }
@@ -319,7 +365,30 @@ public sealed class MainForm : Form
         Clipboard.SetText(sb.ToString());
     }
 
-    private static InputEventRecord CopyWithTextSnapshot(InputEventRecord record, string textSnapshot) => new()
+    private bool IsSensitiveLoggingEnabled() => _enableSensitiveLoggingCheck.Checked;
+
+    private string? GetTextSnapshot() => _includeTextSnapshotCheck.Checked && IsSensitiveLoggingEnabled()
+        ? _inputBox.Text
+        : null;
+
+    private void UpdateCaptureUi(string logPath)
+    {
+        var enabled = IsSensitiveLoggingEnabled();
+        _includeTextSnapshotCheck.Enabled = enabled;
+        _logRawCheck.Enabled = enabled;
+        _logHookCheck.Enabled = enabled;
+        _logWindowMessagesCheck.Enabled = enabled;
+        if (_copyButton is not null)
+        {
+            _copyButton.Enabled = enabled;
+        }
+
+        _statusLabel.Text = enabled
+            ? $"Sensitive logging enabled. Log: {logPath}"
+            : "Sensitive logging disabled. No input events are retained.";
+    }
+
+    private static InputEventRecord CopyWithTextSnapshot(InputEventRecord record, string? textSnapshot) => new()
     {
         Timestamp = record.Timestamp,
         Source = record.Source,
@@ -343,6 +412,8 @@ public sealed class MainForm : Form
     {
         if (disposing)
         {
+            ClearRecords();
+            _inputBox.Clear();
             _keyboardHook.Dispose();
             _logger.Dispose();
         }
@@ -354,6 +425,7 @@ public sealed class MainForm : Form
 public sealed class ProbeTextBox : TextBox
 {
     public Func<bool>? ShouldLog { get; set; }
+    public Func<string?>? TextSnapshotProvider { get; set; }
     public event EventHandler<InputEventRecord>? ProbeWindowMessage;
 
     protected override void WndProc(ref Message m)
@@ -370,11 +442,11 @@ public sealed class ProbeTextBox : TextBox
             return;
         }
 
-        var record = BuildRecord(m.Msg, wParam, lParam, Text);
+        var record = BuildRecord(m.Msg, wParam, lParam, TextSnapshotProvider?.Invoke());
         ProbeWindowMessage?.Invoke(this, record);
     }
 
-    private static InputEventRecord BuildRecord(int msg, IntPtr wParam, IntPtr lParam, string textSnapshot)
+    private static InputEventRecord BuildRecord(int msg, IntPtr wParam, IntPtr lParam, string? textSnapshot)
     {
         var characterInfo = DescribeCharacter(msg, wParam);
         var direction = msg switch

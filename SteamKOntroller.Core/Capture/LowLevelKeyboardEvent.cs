@@ -2,7 +2,7 @@ using SteamKOntroller.Core.Native;
 
 namespace SteamKOntroller.Core.Capture;
 
-public sealed record LowLevelKeyboardEvent(
+public readonly record struct LowLevelKeyboardEvent(
     DateTimeOffset Timestamp,
     int Message,
     ushort VirtualKey,

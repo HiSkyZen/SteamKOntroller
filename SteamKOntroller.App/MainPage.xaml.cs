@@ -60,16 +60,13 @@ public sealed partial class MainPage : Page
 
     private void OnRecordWritten(object? sender, InputDiagnosticRecord record)
     {
-        if (!_runtime.Settings.DiagnosticLoggingEnabled)
-        {
-            return;
-        }
-
+        var recordView = new DiagnosticRecordView(record);
         DispatcherQueue.TryEnqueue(() =>
         {
-            Records.Add(new DiagnosticRecordView(record));
+            Records.Add(recordView);
             while (Records.Count > 300)
             {
+                Records[0].ClearSensitiveFields();
                 Records.RemoveAt(0);
             }
 
@@ -213,7 +210,7 @@ public sealed partial class MainPage : Page
         _runtime.SetDiagnosticLoggingEnabled(DiagnosticLoggingSwitch.IsOn);
         if (!DiagnosticLoggingSwitch.IsOn)
         {
-            Records.Clear();
+            ClearRecordViews();
         }
 
         RefreshStatus();
@@ -233,7 +230,7 @@ public sealed partial class MainPage : Page
     private void ResetCounters_Click(object sender, RoutedEventArgs e)
     {
         _runtime.Bridge.ResetCounters();
-        Records.Clear();
+        ClearRecordViews();
         RefreshStatus();
     }
 
@@ -244,6 +241,16 @@ public sealed partial class MainPage : Page
 
     private void ClearEvents_Click(object sender, RoutedEventArgs e)
     {
+        ClearRecordViews();
+    }
+
+    private void ClearRecordViews()
+    {
+        foreach (var record in Records)
+        {
+            record.ClearSensitiveFields();
+        }
+
         Records.Clear();
     }
 

@@ -68,6 +68,9 @@ public partial class App : Application
     private static bool ShouldShowWindow(string arguments)
     {
         return arguments.Contains("--show", StringComparison.OrdinalIgnoreCase)
-            || arguments.Contains("--window", StringComparison.OrdinalIgnoreCase);
+            || arguments.Contains("--window", StringComparison.OrdinalIgnoreCase)
+            || Environment.GetCommandLineArgs().Skip(1).Any(static argument =>
+                string.Equals(argument, "--show", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--window", StringComparison.OrdinalIgnoreCase));
     }
 }

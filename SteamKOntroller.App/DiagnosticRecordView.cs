@@ -18,11 +18,20 @@ public sealed class DiagnosticRecordView
         Detail = record.Reason ?? record.ForegroundProcess ?? record.ExtraInfo ?? "-";
     }
 
-    public string Time { get; }
-    public string Stage { get; }
-    public string Action { get; }
-    public string Key { get; }
-    public string Direction { get; }
-    public string Score { get; }
-    public string Detail { get; }
+    public string Time { get; private set; }
+    public string Stage { get; private set; }
+    public string Action { get; private set; }
+    public string Key { get; private set; }
+    public string Direction { get; private set; }
+    public string Score { get; private set; }
+    public string Detail { get; private set; }
+
+    public void ClearSensitiveFields()
+    {
+        Action = "-";
+        Key = "-";
+        Direction = "-";
+        Score = "-";
+        Detail = "-";
+    }
 }

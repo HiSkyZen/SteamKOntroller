@@ -9,12 +9,22 @@ public sealed class CompositeDiagnosticSink : IInputDiagnosticSink
         _sinks = sinks;
     }
 
+    public bool IsSensitiveInputEnabled => _sinks.Any(sink => sink.IsSensitiveInputEnabled);
+
     public bool TryWrite(InputDiagnosticRecord record)
     {
         var wrote = false;
         foreach (var sink in _sinks)
         {
-            wrote |= sink.TryWrite(record);
+            var sinkRecord = record.ContainsSensitiveInput && !sink.IsSensitiveInputEnabled
+                ? record.CopyWithoutSensitiveInput()
+                : record.Copy();
+            wrote |= sink.TryWrite(sinkRecord);
+        }
+
+        if (record.ContainsSensitiveInput)
+        {
+            record.ClearSensitiveFields();
         }
 
         return wrote;

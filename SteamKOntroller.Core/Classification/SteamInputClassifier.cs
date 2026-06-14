@@ -31,7 +31,7 @@ public sealed class SteamInputClassifier
             reasons.Add("lower_il_injected");
         }
 
-        if (SupportedKeyPolicy.IsSupported(keyboardEvent.VirtualKey))
+        if (SupportedKeyPolicy.IsSupported(keyboardEvent))
         {
             score += 1;
             reasons.Add("supported_key");

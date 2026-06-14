@@ -8,21 +8,22 @@ namespace SteamKOntroller.Core.Diagnostics;
 
 public sealed class InputDiagnosticRecord
 {
-    public DateTimeOffset Timestamp { get; init; } = DateTimeOffset.Now;
-    public string Stage { get; init; } = string.Empty;
-    public int? Vk { get; init; }
-    public int? ScanCode { get; init; }
-    public string? Direction { get; init; }
-    public string? Flags { get; init; }
-    public bool? Injected { get; init; }
-    public bool? LowerIntegrityInjected { get; init; }
-    public string? ExtraInfo { get; init; }
-    public int? SteamCandidateScore { get; init; }
-    public string? Action { get; init; }
-    public string? Reason { get; init; }
-    public string? ForegroundProcess { get; init; }
-    public int? SendInputReturnCount { get; init; }
-    public int? LastError { get; init; }
+    public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.Now;
+    public string Stage { get; set; } = string.Empty;
+    public int? Vk { get; set; }
+    public int? ScanCode { get; set; }
+    public string? Direction { get; set; }
+    public string? Flags { get; set; }
+    public bool? Injected { get; set; }
+    public bool? LowerIntegrityInjected { get; set; }
+    public string? ExtraInfo { get; set; }
+    public int? SteamCandidateScore { get; set; }
+    public string? Action { get; set; }
+    public string? Reason { get; set; }
+    public string? ForegroundProcess { get; set; }
+    public int? SendInputReturnCount { get; set; }
+    public int? LastError { get; set; }
+    public bool ContainsSensitiveInput { get; set; }
 
     public static InputDiagnosticRecord FromDecision(
         LowLevelKeyboardEvent keyboardEvent,
@@ -40,7 +41,8 @@ public sealed class InputDiagnosticRecord
             ExtraInfo = keyboardEvent.ExtraInfoHex,
             SteamCandidateScore = score.Score,
             Action = decision.Action.ToString(),
-            Reason = string.IsNullOrWhiteSpace(decision.Reason) ? score.ReasonText : decision.Reason
+            Reason = string.IsNullOrWhiteSpace(decision.Reason) ? score.ReasonText : decision.Reason,
+            ContainsSensitiveInput = true
         };
 
     public static InputDiagnosticRecord Reinjected(SendInputResult result) => new()
@@ -53,7 +55,8 @@ public sealed class InputDiagnosticRecord
         ExtraInfo = InjectionMarker.Hex,
         Action = "SendInput",
         SendInputReturnCount = unchecked((int)result.ReturnCount),
-        LastError = result.LastError
+        LastError = result.LastError,
+        ContainsSensitiveInput = true
     };
 
     public static InputDiagnosticRecord SendInputFailure(SendInputResult result) => new()
@@ -68,7 +71,8 @@ public sealed class InputDiagnosticRecord
         Reason = result.ErrorMessage,
         SendInputReturnCount = unchecked((int)result.ReturnCount),
         LastError = result.LastError,
-        ForegroundProcess = ForegroundWindowReader.TryGetForegroundProcessName()
+        ForegroundProcess = ForegroundWindowReader.TryGetForegroundProcessName(),
+        ContainsSensitiveInput = true
     };
 
     public static InputDiagnosticRecord Error(string stage, string reason, LowLevelKeyboardEvent keyboardEvent) => new()
@@ -83,7 +87,8 @@ public sealed class InputDiagnosticRecord
         LowerIntegrityInjected = keyboardEvent.IsLowerIntegrityInjected,
         ExtraInfo = keyboardEvent.ExtraInfoHex,
         Action = "error",
-        Reason = reason
+        Reason = reason,
+        ContainsSensitiveInput = true
     };
 
     public static InputDiagnosticRecord Status(string stage, string action) => new()
@@ -92,4 +97,45 @@ public sealed class InputDiagnosticRecord
         Stage = stage,
         Action = action
     };
+
+    public InputDiagnosticRecord Copy() => new()
+    {
+        Timestamp = Timestamp,
+        Stage = Stage,
+        Vk = Vk,
+        ScanCode = ScanCode,
+        Direction = Direction,
+        Flags = Flags,
+        Injected = Injected,
+        LowerIntegrityInjected = LowerIntegrityInjected,
+        ExtraInfo = ExtraInfo,
+        SteamCandidateScore = SteamCandidateScore,
+        Action = Action,
+        Reason = Reason,
+        ForegroundProcess = ForegroundProcess,
+        SendInputReturnCount = SendInputReturnCount,
+        LastError = LastError,
+        ContainsSensitiveInput = ContainsSensitiveInput
+    };
+
+    public InputDiagnosticRecord CopyWithoutSensitiveInput()
+    {
+        var copy = Copy();
+        copy.ClearSensitiveFields();
+        return copy;
+    }
+
+    public void ClearSensitiveFields()
+    {
+        Vk = null;
+        ScanCode = null;
+        Direction = null;
+        Flags = null;
+        Injected = null;
+        LowerIntegrityInjected = null;
+        ExtraInfo = null;
+        SteamCandidateScore = null;
+        ForegroundProcess = null;
+        ContainsSensitiveInput = false;
+    }
 }

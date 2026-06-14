@@ -56,8 +56,12 @@ docs/                       Project assets
 ## Build
 
 ```powershell
+$arch = $env:PROCESSOR_ARCHITECTURE
+$Platform = if ($arch -eq 'AMD64') { 'x64' } else { $arch }
 dotnet restore .\SteamKOntroller.slnx
-dotnet build .\SteamKOntroller.slnx -c Release
+dotnet build .\SteamKOntroller.App\SteamKOntroller.App.csproj -c Release -p:Platform=$Platform
+dotnet build .\SteamKOntroller.InputProbe\SteamKOntroller.InputProbe.csproj -c Release
+dotnet build .\SteamKOntroller.Tests\SteamKOntroller.Tests.csproj -c Release
 ```
 
 ## Run
@@ -79,12 +83,14 @@ dotnet run --project .\SteamKOntroller.InputProbe\SteamKOntroller.InputProbe.csp
 ## Test
 
 ```powershell
-dotnet run --project .\SteamKOntroller.Tests\SteamKOntroller.Tests.csproj
+$arch = $env:PROCESSOR_ARCHITECTURE
+$Platform = if ($arch -eq 'AMD64') { 'x64' } else { $arch }
+dotnet run --project .\SteamKOntroller.Tests\SteamKOntroller.Tests.csproj -p:Platform=$Platform
 ```
 
 ## Diagnostics
 
-Persistent diagnostic logging is disabled by default. When enabled in the app, completed JSONL logs are compressed and old logs are deleted according to the configured retention period. Use the app's diagnostics page to open the log directory.
+Persistent diagnostic logging is disabled by default. While it is disabled, detailed per-key diagnostic records are not emitted to the UI or disk, and runtime counters do not retain the last key value. When enabled in the app, completed JSONL logs are compressed and old logs are deleted according to the configured retention period. Use the app's diagnostics page to open the log directory.
 
 ## License
 

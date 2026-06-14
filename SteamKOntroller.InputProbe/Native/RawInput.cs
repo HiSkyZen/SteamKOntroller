@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using SteamKOntroller.InputProbe.Logging;
 
@@ -92,8 +93,21 @@ public static class RawInput
         }
         finally
         {
+            ZeroUnmanagedMemory(buffer, (int)size);
             Marshal.FreeHGlobal(buffer);
         }
+    }
+
+    private static void ZeroUnmanagedMemory(IntPtr buffer, int length)
+    {
+        if (buffer == IntPtr.Zero || length <= 0)
+        {
+            return;
+        }
+
+        var zeros = new byte[length];
+        Marshal.Copy(zeros, 0, buffer, length);
+        CryptographicOperations.ZeroMemory(zeros);
     }
 
     private static string BuildRawNote(ushort flags)

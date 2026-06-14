@@ -1,4 +1,3 @@
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Channels;
 
@@ -11,7 +10,6 @@ public sealed class JsonlDiagnosticLogger : IInputDiagnosticSink, IDisposable
     private readonly Task _writerTask;
     private readonly JsonSerializerOptions _options = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         WriteIndented = false
     };
 
@@ -21,7 +19,7 @@ public sealed class JsonlDiagnosticLogger : IInputDiagnosticSink, IDisposable
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
         _channel = Channel.CreateBounded<InputDiagnosticRecord>(new BoundedChannelOptions(4096)
         {
-            FullMode = BoundedChannelFullMode.DropOldest,
+            FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
             SingleWriter = false
         });
@@ -29,6 +27,8 @@ public sealed class JsonlDiagnosticLogger : IInputDiagnosticSink, IDisposable
     }
 
     public string Path { get; }
+
+    public bool IsSensitiveInputEnabled => true;
 
     public static string CreateDefaultPath()
     {
@@ -40,11 +40,24 @@ public sealed class JsonlDiagnosticLogger : IInputDiagnosticSink, IDisposable
         return System.IO.Path.Combine(logDir, $"steamkontroller-{DateTimeOffset.Now:yyyyMMdd-HHmmss}.jsonl");
     }
 
-    public bool TryWrite(InputDiagnosticRecord record) => _channel.Writer.TryWrite(record);
+    public bool TryWrite(InputDiagnosticRecord record)
+    {
+        if (_channel.Writer.TryWrite(record))
+        {
+            return true;
+        }
+
+        if (record.ContainsSensitiveInput)
+        {
+            record.ClearSensitiveFields();
+        }
+
+        return false;
+    }
 
     private async Task WriteLoopAsync()
     {
-        await using var stream = new FileStream(Path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+        await using var stream = new FileStream(Path, FileMode.Append, FileAccess.Write, FileShare.Read);
         await using var writer = new StreamWriter(stream);
 
         try
@@ -53,6 +66,10 @@ public sealed class JsonlDiagnosticLogger : IInputDiagnosticSink, IDisposable
             {
                 await writer.WriteLineAsync(JsonSerializer.Serialize(record, _options));
                 await writer.FlushAsync();
+                if (record.ContainsSensitiveInput)
+                {
+                    record.ClearSensitiveFields();
+                }
             }
         }
         catch (OperationCanceledException)

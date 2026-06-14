@@ -103,9 +103,19 @@ internal sealed class BridgeRuntime : IDisposable
             return;
         }
 
+        if (!enabled)
+        {
+            _diagnosticLogs.SetEnabled(false);
+        }
+
         Settings.DiagnosticLoggingEnabled = enabled;
         _settingsStore.Save();
-        _diagnosticLogs.SetEnabled(enabled);
+
+        if (enabled)
+        {
+            _diagnosticLogs.SetEnabled(true);
+        }
+
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 

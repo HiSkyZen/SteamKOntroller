@@ -11,13 +11,13 @@ public static class VirtualKeys
     public const int VK_SPACE = 0x20;
     public const int VK_LWIN = 0x5B;
     public const int VK_RWIN = 0x5C;
-    public const int VK_F24 = 0x87;
     public const int VK_LSHIFT = 0xA0;
     public const int VK_RSHIFT = 0xA1;
     public const int VK_LCONTROL = 0xA2;
     public const int VK_RCONTROL = 0xA3;
     public const int VK_LMENU = 0xA4;
     public const int VK_RMENU = 0xA5;
+    public const int VK_PACKET = 0xE7;
 
     public static bool IsAsciiLetter(ushort virtualKey) => virtualKey is >= (ushort)'A' and <= (ushort)'Z';
 
@@ -25,9 +25,12 @@ public static class VirtualKeys
     {
         VK_BACK => "Backspace",
         VK_RETURN => "Enter",
+        VK_MENU => "Alt",
         VK_HANGUL => "Hangul",
         VK_SPACE => "Space",
-        VK_F24 => "F24",
+        VK_RMENU => "RightAlt",
+        VK_LMENU => "LeftAlt",
+        VK_PACKET => "Packet",
         >= (ushort)'A' and <= (ushort)'Z' => ((char)virtualKey).ToString(),
         _ => $"VK 0x{virtualKey:X2}"
     };

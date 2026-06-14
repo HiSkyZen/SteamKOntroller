@@ -1,3 +1,3 @@
 namespace SteamKOntroller.Core.Reinject;
 
-public sealed record ScanCodeInjectionRequest(ushort VirtualKey, ushort ScanCode, bool Extended, bool MockShift = false);
+public readonly record struct ScanCodeInjectionRequest(ushort VirtualKey, ushort ScanCode, bool Extended, bool MockShift = false);

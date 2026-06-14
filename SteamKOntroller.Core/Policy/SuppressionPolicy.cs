@@ -28,14 +28,9 @@ public sealed class SuppressionPolicy
             return BridgeDecision.PassThrough("disabled");
         }
 
-        if (!SupportedKeyPolicy.IsSupported(keyboardEvent.VirtualKey))
+        if (!SupportedKeyPolicy.IsSupported(keyboardEvent))
         {
             return BridgeDecision.PassThrough("unsupported_key");
-        }
-
-        if (modifiers.HasShortcutModifier)
-        {
-            return BridgeDecision.PassThrough("shortcut_modifier");
         }
 
         if (!score.IsCandidate)
@@ -43,11 +38,16 @@ public sealed class SuppressionPolicy
             return BridgeDecision.PassThrough("not_steam_candidate");
         }
 
-        if (SupportedKeyPolicy.IsHangulToggleSentinel(keyboardEvent.VirtualKey))
+        if (SupportedKeyPolicy.IsHangulToggleSentinel(keyboardEvent))
         {
             return keyboardEvent.IsKeyUp
-                ? new BridgeDecision(BridgeAction.SuppressOnly, "hangul_toggle_key_up")
-                : new BridgeDecision(BridgeAction.SuppressAndSendHangulToggle, "hangul_toggle_key_down");
+                ? new BridgeDecision(BridgeAction.SuppressOnly, "packet_hangul_toggle_key_up")
+                : new BridgeDecision(BridgeAction.SuppressAndSendHangulToggle, "packet_hangul_toggle_key_down");
+        }
+
+        if (modifiers.HasShortcutModifier)
+        {
+            return BridgeDecision.PassThrough("shortcut_modifier");
         }
 
         return keyboardEvent.IsKeyUp
@@ -55,6 +55,6 @@ public sealed class SuppressionPolicy
             : new BridgeDecision(
                 BridgeAction.SuppressAndReinject,
                 "candidate_key_down",
-                MockShift: modifiers.Shift && VirtualKeys.IsAsciiLetter(keyboardEvent.VirtualKey));
+                MockShift: modifiers.Shift && SupportedKeyPolicy.ShouldMockShiftForHangulJamo(keyboardEvent.VirtualKey));
     }
 }

@@ -131,8 +131,11 @@ public sealed class LowLevelKeyboardHook : IDisposable
                 unchecked((ushort)nativeEvent.scanCode),
                 (LowLevelKeyboardFlags)nativeEvent.flags,
                 nativeEvent.dwExtraInfo);
+            var suppress = _processor(keyboardEvent);
+            nativeEvent = default;
+            keyboardEvent = default;
 
-            if (_processor(keyboardEvent))
+            if (suppress)
             {
                 return new IntPtr(1);
             }

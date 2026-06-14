@@ -11,10 +11,12 @@ public sealed class ScancodeReinjector : IDisposable
     private const uint KEYEVENTF_KEYUP = 0x0002;
     private const uint KEYEVENTF_SCANCODE = 0x0008;
     private const ushort LeftShiftScanCode = 0x2A;
+    private const int MaxQueuedRequests = 128;
 
-    private readonly Channel<ScanCodeInjectionRequest> _queue = Channel.CreateUnbounded<ScanCodeInjectionRequest>(
-        new UnboundedChannelOptions
+    private readonly Channel<ScanCodeInjectionRequest> _queue = Channel.CreateBounded<ScanCodeInjectionRequest>(
+        new BoundedChannelOptions(MaxQueuedRequests)
         {
+            FullMode = BoundedChannelFullMode.Wait,
             SingleReader = true,
             SingleWriter = false
         });
@@ -50,6 +52,7 @@ public sealed class ScancodeReinjector : IDisposable
             {
                 var result = SendTap(request);
                 InjectionCompleted?.Invoke(this, result);
+                result = default;
             }
         }
         catch (OperationCanceledException)
@@ -69,54 +72,73 @@ public sealed class ScancodeReinjector : IDisposable
             flagsUp |= KEYEVENTF_EXTENDEDKEY;
         }
 
-        var keyInputs = new[]
+        INPUT[]? keyInputs = null;
+        INPUT[]? inputs = null;
+
+        try
         {
-            new INPUT
+            keyInputs = new[]
             {
-                type = INPUT_KEYBOARD,
-                U = new INPUTUNION
+                new INPUT
                 {
-                    ki = new KEYBDINPUT
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
                     {
-                        wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
-                        wScan = request.ScanCode,
-                        dwFlags = flagsDown,
-                        time = 0,
-                        dwExtraInfo = InjectionMarker.Value
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
+                            wScan = request.ScanCode,
+                            dwFlags = flagsDown,
+                            time = 0,
+                            dwExtraInfo = InjectionMarker.Value
+                        }
+                    }
+                },
+                new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    U = new INPUTUNION
+                    {
+                        ki = new KEYBDINPUT
+                        {
+                            wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
+                            wScan = request.ScanCode,
+                            dwFlags = flagsUp,
+                            time = 0,
+                            dwExtraInfo = InjectionMarker.Value
+                        }
                     }
                 }
-            },
-            new INPUT
-            {
-                type = INPUT_KEYBOARD,
-                U = new INPUTUNION
+            };
+
+            inputs = request.MockShift
+                ? new[]
                 {
-                    ki = new KEYBDINPUT
-                    {
-                        wVk = useVirtualKey ? request.VirtualKey : (ushort)0,
-                        wScan = request.ScanCode,
-                        dwFlags = flagsUp,
-                        time = 0,
-                        dwExtraInfo = InjectionMarker.Value
-                    }
+                    CreateScanCodeInput(LeftShiftScanCode, 0),
+                    keyInputs[0],
+                    keyInputs[1],
+                    CreateScanCodeInput(LeftShiftScanCode, KEYEVENTF_KEYUP)
                 }
-            }
-        };
+                : keyInputs;
 
-        var inputs = request.MockShift
-            ? new[]
+            var expectedCount = (uint)inputs.Length;
+            var sent = SendInput(expectedCount, inputs, Marshal.SizeOf<INPUT>());
+            var lastError = sent == expectedCount ? 0 : Marshal.GetLastWin32Error();
+            var error = lastError == 0 ? null : new Win32Exception(lastError).Message;
+            return new SendInputResult(request.VirtualKey, request.ScanCode, sent, lastError, error, expectedCount);
+        }
+        finally
+        {
+            if (inputs is not null)
             {
-                CreateScanCodeInput(LeftShiftScanCode, 0),
-                keyInputs[0],
-                keyInputs[1],
-                CreateScanCodeInput(LeftShiftScanCode, KEYEVENTF_KEYUP)
+                Array.Clear(inputs, 0, inputs.Length);
             }
-            : keyInputs;
 
-        var sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
-        var lastError = sent == inputs.Length ? 0 : Marshal.GetLastWin32Error();
-        var error = lastError == 0 ? null : new Win32Exception(lastError).Message;
-        return new SendInputResult(request.VirtualKey, request.ScanCode, sent, lastError, error, (uint)inputs.Length);
+            if (keyInputs is not null && !ReferenceEquals(keyInputs, inputs))
+            {
+                Array.Clear(keyInputs, 0, keyInputs.Length);
+            }
+        }
     }
 
     private static INPUT CreateScanCodeInput(ushort scanCode, uint flags) => new()

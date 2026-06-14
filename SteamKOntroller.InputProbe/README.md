@@ -8,6 +8,8 @@ Steam Keyboard / physical keyboard / IME input path analyzer PoC.
 2. Low-level keyboard hook (`WH_KEYBOARD_LL`)
 3. 테스트 입력창의 `WndProc` 메시지 (`WM_KEYDOWN`, `WM_CHAR`, `WM_IME_COMPOSITION` 등)
 
+민감 입력 캡처는 기본적으로 꺼져 있습니다. 기록이 필요할 때만 `Sensitive logging`을 켠 뒤 필요한 레이어를 선택하십시오. 전체 입력창 내용 스냅샷은 별도의 `Text snapshot` 옵션을 켠 경우에만 저장됩니다.
+
 ## Requirements
 
 - Windows 10/11
@@ -81,7 +83,7 @@ dotnet run --project .\SteamKOntroller.InputProbe.csproj
 
 ## Log location
 
-실행할 때마다 JSONL 로그가 아래에 생성됩니다.
+`Sensitive logging`을 켜고 이벤트가 기록될 때 JSONL 로그가 아래에 생성됩니다.
 
 ```text
 %LOCALAPPDATA%\SteamKOntroller\InputProbe\logs\input-probe-yyyyMMdd-HHmmss.jsonl

@@ -1,6 +1,6 @@
 namespace SteamKOntroller.Core.Reinject;
 
-public sealed record SendInputResult(
+public readonly record struct SendInputResult(
     ushort VirtualKey,
     ushort ScanCode,
     uint ReturnCount,

@@ -79,20 +79,20 @@ public sealed class SteamInputBridge : IDisposable
         {
             case BridgeAction.LoopGuarded:
                 _counters.IncrementLoopGuarded();
-                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 return false;
 
             case BridgeAction.Toggle:
                 var enabled = _state.ToggleEnabled();
-                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(
+                WriteSensitiveDiagnostic(
                     keyboardEvent,
                     score,
-                    decision with { Reason = enabled ? "enabled" : "disabled" }));
+                    decision with { Reason = enabled ? "enabled" : "disabled" });
                 return false;
 
             case BridgeAction.SuppressAndReinject:
                 _counters.IncrementSuppressed();
-                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 if (!_reinjector.TryEnqueueTap(
                     keyboardEvent.VirtualKey,
                     keyboardEvent.ScanCode,
@@ -100,37 +100,37 @@ public sealed class SteamInputBridge : IDisposable
                     decision.MockShift))
                 {
                     _counters.IncrementSendInputFailures();
-                    _diagnostics.TryWrite(InputDiagnosticRecord.Error(
+                    WriteSensitiveError(
                         "reinject",
                         "reinject queue rejected request",
-                        keyboardEvent));
+                        keyboardEvent);
                 }
 
                 return true;
 
             case BridgeAction.SuppressAndSendHangulToggle:
                 _counters.IncrementSuppressed();
-                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 if (!_reinjector.TryEnqueueVirtualKeyTap(VirtualKeys.VK_HANGUL))
                 {
                     _counters.IncrementSendInputFailures();
-                    _diagnostics.TryWrite(InputDiagnosticRecord.Error(
+                    WriteSensitiveError(
                         "reinject",
                         "hangul toggle queue rejected request",
-                        keyboardEvent));
+                        keyboardEvent);
                 }
 
                 return true;
 
             case BridgeAction.SuppressOnly:
                 _counters.IncrementSuppressed();
-                _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 return true;
 
             default:
                 if (score.IsCandidate)
                 {
-                    _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+                    WriteSensitiveDiagnostic(keyboardEvent, score, decision);
                 }
 
                 return false;
@@ -148,6 +148,22 @@ public sealed class SteamInputBridge : IDisposable
 
         _counters.IncrementSendInputFailures();
         _diagnostics.TryWrite(InputDiagnosticRecord.SendInputFailure(result));
+    }
+
+    private void WriteSensitiveDiagnostic(
+        LowLevelKeyboardEvent keyboardEvent,
+        CandidateScore score,
+        BridgeDecision decision)
+    {
+        _diagnostics.TryWrite(InputDiagnosticRecord.FromDecision(keyboardEvent, score, decision));
+    }
+
+    private void WriteSensitiveError(
+        string stage,
+        string reason,
+        LowLevelKeyboardEvent keyboardEvent)
+    {
+        _diagnostics.TryWrite(InputDiagnosticRecord.Error(stage, reason, keyboardEvent));
     }
 
     public void Dispose()
