@@ -28,6 +28,8 @@ var tests = new (string Name, Action Body)[]
     ("policy toggles on Ctrl+Alt+H", PolicyTogglesOnHotkey),
     ("diagnostics forwards redacted records when sensitive logging disabled", DiagnosticsForwardsRedactedRecordsWhenSensitiveLoggingDisabled),
     ("diagnostics writes sensitive records when enabled", DiagnosticsWritesSensitiveRecordsWhenEnabled),
+    ("diagnostics event sink ignores records when disabled", DiagnosticsEventSinkIgnoresRecordsWhenDisabled),
+    ("diagnostics event sink redacts records when sensitive logging disabled", DiagnosticsEventSinkRedactsRecordsWhenSensitiveLoggingDisabled),
     ("diagnostics event sink retains recent records", DiagnosticsEventSinkRetainsRecentRecords),
     ("counters do not retain last key", CountersDoNotRetainLastKey),
     ("send input result accepts expected Shift mock count", SendInputResultAcceptsExpectedShiftMockCount),
@@ -253,6 +255,36 @@ static void DiagnosticsWritesSensitiveRecordsWhenEnabled()
     Assert(sink.Count == 1, $"expected one record, got {sink.Count}");
     Assert(sink.LastRecord?.Vk == 'G', "accepted record must preserve key data for the enabled sink");
     Assert(record.Vk is null && record.ScanCode is null, "source sensitive record must be scrubbed after write");
+}
+
+static void DiagnosticsEventSinkIgnoresRecordsWhenDisabled()
+{
+    var eventSink = new EventDiagnosticSink(() => false, () => false);
+    var composite = new CompositeDiagnosticSink(eventSink);
+    var record = InputDiagnosticRecord.FromDecision(
+        Key('G', 0x22),
+        new CandidateScore(6, ["injected", "lower_il_injected", "supported_key"], 6),
+        new BridgeDecision(BridgeAction.SuppressAndReinject, "candidate_key_down"));
+
+    Assert(!composite.TryWrite(record), "disabled event sink must not accept diagnostic records");
+    Assert(eventSink.Snapshot().Count == 0, "disabled event sink must not retain records");
+    Assert(record.Vk is null && record.ScanCode is null, "source sensitive record must be scrubbed after disabled write");
+}
+
+static void DiagnosticsEventSinkRedactsRecordsWhenSensitiveLoggingDisabled()
+{
+    var eventSink = new EventDiagnosticSink(() => true, () => false);
+    var composite = new CompositeDiagnosticSink(eventSink);
+    var record = InputDiagnosticRecord.FromDecision(
+        Key('G', 0x22),
+        new CandidateScore(6, ["injected", "lower_il_injected", "supported_key"], 6),
+        new BridgeDecision(BridgeAction.SuppressAndReinject, "candidate_key_down"));
+
+    Assert(composite.TryWrite(record), "enabled event sink must accept redacted records");
+    var snapshot = eventSink.Snapshot();
+    Assert(snapshot.Count == 1, $"expected one retained record, got {snapshot.Count}");
+    Assert(snapshot[0].Vk is null && snapshot[0].ScanCode is null, "event sink must redact key data when sensitive logging is disabled");
+    Assert(snapshot[0].Action == BridgeAction.SuppressAndReinject.ToString(), "redacted event must preserve action");
 }
 
 static void DiagnosticsEventSinkRetainsRecentRecords()

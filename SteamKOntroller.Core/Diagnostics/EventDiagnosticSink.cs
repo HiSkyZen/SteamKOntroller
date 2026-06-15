@@ -5,17 +5,24 @@ public sealed class EventDiagnosticSink : IInputDiagnosticSink
     private const int MaxRecentRecords = 300;
     private readonly object _sync = new();
     private readonly Queue<InputDiagnosticRecord> _recentRecords = new(MaxRecentRecords);
+    private readonly Func<bool> _isEnabled;
     private readonly Func<bool> _isSensitiveInputEnabled;
 
     public event EventHandler<InputDiagnosticRecord>? RecordWritten;
 
     public EventDiagnosticSink()
-        : this(static () => false)
+        : this(static () => true, static () => false)
     {
     }
 
     public EventDiagnosticSink(Func<bool> isSensitiveInputEnabled)
+        : this(static () => true, isSensitiveInputEnabled)
     {
+    }
+
+    public EventDiagnosticSink(Func<bool> isEnabled, Func<bool> isSensitiveInputEnabled)
+    {
+        _isEnabled = isEnabled;
         _isSensitiveInputEnabled = isSensitiveInputEnabled;
     }
 
@@ -31,7 +38,19 @@ public sealed class EventDiagnosticSink : IInputDiagnosticSink
 
     public bool TryWrite(InputDiagnosticRecord record)
     {
-        var storedRecord = record.Copy();
+        if (!_isEnabled())
+        {
+            if (record.ContainsSensitiveInput)
+            {
+                record.ClearSensitiveFields();
+            }
+
+            return false;
+        }
+
+        var storedRecord = record.ContainsSensitiveInput && !IsSensitiveInputEnabled
+            ? record.CopyWithoutSensitiveInput()
+            : record.Copy();
         lock (_sync)
         {
             _recentRecords.Enqueue(storedRecord);

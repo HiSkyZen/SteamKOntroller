@@ -53,8 +53,11 @@ internal sealed class BridgeRuntime : IDisposable
         var counters = new BridgeCounters();
         var logger = new DiagnosticLogService(
             settingsStore.Settings.DiagnosticLoggingEnabled,
+            IsSensitiveInputLoggingAllowed(settingsStore.Settings),
             settingsStore.Settings.LogRetentionDays);
-        var events = new EventDiagnosticSink(() => logger.IsEnabled);
+        var events = new EventDiagnosticSink(
+            () => logger.IsEnabled,
+            () => logger.IsSensitiveInputEnabled);
         var diagnostics = new CompositeDiagnosticSink(logger, events);
         var bridge = new SteamInputBridge(
             state,
@@ -108,6 +111,7 @@ internal sealed class BridgeRuntime : IDisposable
         {
             _diagnosticLogs.SetEnabled(false);
             _events.ClearSensitiveFields();
+            Settings.SensitiveInputLoggingEnabled = false;
         }
 
         Settings.DiagnosticLoggingEnabled = enabled;
@@ -116,8 +120,32 @@ internal sealed class BridgeRuntime : IDisposable
         if (enabled)
         {
             _diagnosticLogs.SetEnabled(true);
+            _diagnosticLogs.SetSensitiveInputEnabled(IsSensitiveInputLoggingAllowed(Settings));
         }
 
+        SettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetSensitiveInputLoggingEnabled(bool enabled)
+    {
+#if DEBUG
+        var allowed = enabled && Settings.DiagnosticLoggingEnabled;
+#else
+        var allowed = false;
+#endif
+        if (Settings.SensitiveInputLoggingEnabled == allowed)
+        {
+            return;
+        }
+
+        if (!allowed)
+        {
+            _events.ClearSensitiveFields();
+        }
+
+        Settings.SensitiveInputLoggingEnabled = allowed;
+        _settingsStore.Save();
+        _diagnosticLogs.SetSensitiveInputEnabled(allowed);
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -145,5 +173,14 @@ internal sealed class BridgeRuntime : IDisposable
         _disposed = true;
         Bridge.Dispose();
         _diagnosticLogs.Dispose();
+    }
+
+    private static bool IsSensitiveInputLoggingAllowed(AppSettings settings)
+    {
+#if DEBUG
+        return settings.DiagnosticLoggingEnabled && settings.SensitiveInputLoggingEnabled;
+#else
+        return false;
+#endif
     }
 }

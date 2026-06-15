@@ -328,6 +328,37 @@
                                 </StackPanel>
                             </Grid>
                         </Border>
+
+                        <Border
+                            x:Name="SensitiveLoggingSettingCard"
+                            Grid.Row="3"
+                            Style="{StaticResource FeatureCardStyle}">
+                            <Grid RowSpacing="12">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock
+                                    Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                    Text="민감 입력 로그" />
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Style="{ThemeResource BodyTextBlockStyle}"
+                                    Text="키 값과 스캔 코드를 그대로 기록합니다. 디버그 빌드에서만 사용할 수 있습니다."
+                                    TextWrapping="WrapWholeWords" />
+                                <ToggleSwitch
+                                    x:Name="SensitiveLoggingSwitch"
+                                    Grid.Row="2"
+                                    HorizontalAlignment="Left"
+                                    MinWidth="116"
+                                    AutomationProperties.AutomationId="SensitiveLoggingSwitch"
+                                    AutomationProperties.Name="민감 입력 로그"
+                                    OffContent="끔"
+                                    OnContent="켬"
+                                    Toggled="SensitiveLoggingSwitch_Toggled" />
+                            </Grid>
+                        </Border>
                     </Grid>
                 </ScrollViewer>
 

@@ -22,6 +22,9 @@ public sealed partial class MainPage : Page
         _runtime = ((App)Application.Current).Runtime;
         Records = new ObservableCollection<DiagnosticRecordView>();
         InitializeComponent();
+#if !DEBUG
+        SensitiveLoggingSettingCard.Visibility = Visibility.Collapsed;
+#endif
 
         EventList.ItemsSource = Records;
         _timer.Interval = TimeSpan.FromMilliseconds(500);
@@ -112,10 +115,13 @@ public sealed partial class MainPage : Page
         var snapshot = _runtime.Counters.Snapshot();
         var enabled = _runtime.Bridge.Enabled;
         var diagnosticsEnabled = _runtime.Settings.DiagnosticLoggingEnabled;
+        var sensitiveInputLoggingEnabled = diagnosticsEnabled && _runtime.Settings.SensitiveInputLoggingEnabled;
 
         _updatingControls = true;
         BridgeSwitch.IsOn = enabled;
         DiagnosticLoggingSwitch.IsOn = diagnosticsEnabled;
+        SensitiveLoggingSwitch.IsOn = sensitiveInputLoggingEnabled;
+        SensitiveLoggingSwitch.IsEnabled = diagnosticsEnabled;
         RetentionDaysBox.Value = _runtime.Settings.LogRetentionDays;
         try
         {
@@ -138,13 +144,17 @@ public sealed partial class MainPage : Page
         StatusInfo.Title = _runtime.LastStartupError is null
             ? (snapshot.HookInstalled ? "브리지가 실행 중입니다" : "브리지가 중지되었습니다")
             : "브리지 오류";
-        StatusInfo.Message = _runtime.LastStartupError ?? BuildStatusMessage(diagnosticsEnabled);
+        StatusInfo.Message = _runtime.LastStartupError ?? BuildStatusMessage(diagnosticsEnabled, sensitiveInputLoggingEnabled);
 
-        DiagnosticsInfo.Severity = diagnosticsEnabled ? InfoBarSeverity.Informational : InfoBarSeverity.Warning;
-        DiagnosticsInfo.Title = diagnosticsEnabled ? "진단 로그가 켜져 있습니다" : "진단 로그가 꺼져 있습니다";
+        DiagnosticsInfo.Severity = diagnosticsEnabled
+            ? (sensitiveInputLoggingEnabled ? InfoBarSeverity.Error : InfoBarSeverity.Informational)
+            : InfoBarSeverity.Warning;
+        DiagnosticsInfo.Title = diagnosticsEnabled
+            ? (sensitiveInputLoggingEnabled ? "민감 입력 로그가 켜져 있습니다" : "마스킹된 진단 로그가 켜져 있습니다")
+            : "진단 로그가 꺼져 있습니다";
         DiagnosticsInfo.Message = diagnosticsEnabled
-            ? $"상세 입력 이벤트를 진단 탭과 디스크에 기록합니다. 현재 폴더: {_runtime.LogDirectory}"
-            : "디스크 로그는 꺼져 있습니다. 진단 탭에는 키값을 제거한 이벤트만 표시합니다.";
+            ? BuildDiagnosticsMessage(sensitiveInputLoggingEnabled)
+            : "진단 탭과 디스크에 입력 이벤트를 기록하지 않습니다.";
 
         EnabledText.Text = enabled ? "켬" : "끔";
         HookText.Text = snapshot.HookInstalled ? "설치됨" : "중지됨";
@@ -154,20 +164,29 @@ public sealed partial class MainPage : Page
         ReinjectedText.Text = snapshot.ReinjectedEvents.ToString("N0");
         LoopGuardText.Text = snapshot.LoopGuardedEvents.ToString("N0");
         FailuresText.Text = snapshot.SendInputFailures.ToString("N0");
-        LastKeyText.Text = diagnosticsEnabled ? snapshot.LastKeyText : "숨김";
+        LastKeyText.Text = sensitiveInputLoggingEnabled ? snapshot.LastKeyText : "숨김";
         LastEventText.Text = snapshot.LastEventAt?.ToString("HH:mm:ss.fff") ?? "-";
     }
 
-    private string BuildStatusMessage(bool diagnosticsEnabled)
+    private string BuildStatusMessage(bool diagnosticsEnabled, bool sensitiveInputLoggingEnabled)
     {
         if (!diagnosticsEnabled)
         {
-            return "진단 로그가 꺼져 있습니다.";
+            return "진단 로그가 꺼져 있습니다. 진단 탭과 디스크에 입력 이벤트를 기록하지 않습니다.";
         }
 
+        var mode = sensitiveInputLoggingEnabled ? "민감 입력 진단 로그" : "마스킹된 진단 로그";
         return _runtime.CurrentLogPath is null
-            ? $"진단 로그는 {_runtime.LogDirectory}에 저장됩니다."
-            : $"진단 로그 기록 중: {_runtime.CurrentLogPath}";
+            ? $"{mode}는 {_runtime.LogDirectory}에 저장됩니다."
+            : $"{mode} 기록 중: {_runtime.CurrentLogPath}";
+    }
+
+    private string BuildDiagnosticsMessage(bool sensitiveInputLoggingEnabled)
+    {
+        var mode = sensitiveInputLoggingEnabled
+            ? "키 값과 스캔 코드를 포함한 위험한 디버그 로그"
+            : "키 값을 제거한 마스킹 로그";
+        return $"{mode}를 진단 탭과 디스크에 기록합니다. 현재 폴더: {_runtime.LogDirectory}";
     }
 
     private void RootNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -238,7 +257,10 @@ public sealed partial class MainPage : Page
             BridgeSettingCard,
             StartupSettingCard,
             DiagnosticSettingCard,
-            RetentionSettingCard
+            RetentionSettingCard,
+#if DEBUG
+            SensitiveLoggingSettingCard
+#endif
         };
         for (var index = 0; index < cards.Length; index++)
         {
@@ -354,6 +376,50 @@ public sealed partial class MainPage : Page
         }
 
         RefreshStatus();
+    }
+
+    private async void SensitiveLoggingSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_updatingControls)
+        {
+            return;
+        }
+
+        var requestedEnabled = SensitiveLoggingSwitch.IsOn;
+#if DEBUG
+        if (requestedEnabled && !await ConfirmSensitiveInputLoggingAsync())
+        {
+            _updatingControls = true;
+            SensitiveLoggingSwitch.IsOn = false;
+            _updatingControls = false;
+            return;
+        }
+
+        _runtime.SetSensitiveInputLoggingEnabled(requestedEnabled);
+#else
+        _runtime.SetSensitiveInputLoggingEnabled(false);
+#endif
+        if (!requestedEnabled)
+        {
+            ClearRecordViews();
+        }
+
+        RefreshStatus();
+    }
+
+    private async Task<bool> ConfirmSensitiveInputLoggingAsync()
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "위험: 키 입력 원문을 기록합니다",
+            Content = "이 옵션은 누른 키와 스캔 코드를 그대로 저장합니다. 암호, 인증 코드, 개인 메시지, 업무 자료가 로그 파일과 진단 탭에 남을 수 있습니다. 필요한 디버깅이 끝나면 즉시 끄고 생성된 로그를 삭제하십시오.",
+            PrimaryButtonText = "위험을 이해하고 켜기",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private void RetentionDaysBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)

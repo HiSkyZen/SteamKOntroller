@@ -8,6 +8,7 @@ internal sealed class AppSettingsStore
     {
         WriteIndented = true
     };
+    private static readonly AppJsonSerializerContext JsonContext = new(JsonOptions);
 
     private AppSettingsStore(string path, AppSettings settings)
     {
@@ -33,9 +34,12 @@ internal sealed class AppSettingsStore
 
         try
         {
-            var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), JsonOptions)
+            var settings = JsonSerializer.Deserialize(File.ReadAllText(path), JsonContext.AppSettings)
                 ?? new AppSettings();
             settings.LogRetentionDays = ClampRetentionDays(settings.LogRetentionDays);
+#if !DEBUG
+            settings.SensitiveInputLoggingEnabled = false;
+#endif
             return new AppSettingsStore(path, settings);
         }
         catch (JsonException)
@@ -51,7 +55,7 @@ internal sealed class AppSettingsStore
     public void Save()
     {
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
-        File.WriteAllText(Path, JsonSerializer.Serialize(Settings, JsonOptions));
+        File.WriteAllText(Path, JsonSerializer.Serialize(Settings, JsonContext.AppSettings));
     }
 
     public static int ClampRetentionDays(int days) => Math.Clamp(days, 1, 90);

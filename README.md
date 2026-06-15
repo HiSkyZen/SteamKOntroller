@@ -90,7 +90,7 @@ dotnet run --project .\SteamKOntroller.Tests\SteamKOntroller.Tests.csproj -p:Pla
 
 ## Diagnostics
 
-Persistent diagnostic logging is disabled by default. While it is disabled, detailed per-key diagnostic records are not emitted to the UI or disk, and runtime counters do not retain the last key value. When enabled in the app, completed JSONL logs are compressed and old logs are deleted according to the configured retention period. Use the app's diagnostics page to open the log directory.
+Persistent diagnostic logging is disabled by default. While it is disabled, detailed per-key diagnostic records are not emitted to the UI or disk, and runtime counters do not retain the last key value. When enabled in the app, diagnostic records are written with key values masked; debug builds expose a separate high-risk sensitive input logging toggle that warns before recording raw key values. Completed JSONL logs are compressed and old logs are deleted according to the configured retention period. Use the app's diagnostics page to open the log directory.
 
 ## License
 
