@@ -31,7 +31,7 @@ public partial class App : Application
         _tray.UpdateEnabled(Runtime.Bridge.Enabled);
         Runtime.Start();
         _window.Activate();
-        if (!ShouldShowWindow(args.Arguments))
+        if (ShouldStartHidden(args.Arguments))
         {
             WindowVisibility.Hide(_window);
         }
@@ -65,12 +65,14 @@ public partial class App : Application
         Runtime?.ReportError("unhandled", e.Message);
     }
 
-    private static bool ShouldShowWindow(string arguments)
+    private static bool ShouldStartHidden(string arguments)
     {
-        return arguments.Contains("--show", StringComparison.OrdinalIgnoreCase)
-            || arguments.Contains("--window", StringComparison.OrdinalIgnoreCase)
+        return arguments.Contains("--tray", StringComparison.OrdinalIgnoreCase)
+            || arguments.Contains("--hide", StringComparison.OrdinalIgnoreCase)
+            || arguments.Contains("--hidden", StringComparison.OrdinalIgnoreCase)
             || Environment.GetCommandLineArgs().Skip(1).Any(static argument =>
-                string.Equals(argument, "--show", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(argument, "--window", StringComparison.OrdinalIgnoreCase));
+                string.Equals(argument, "--tray", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--hide", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(argument, "--hidden", StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -12,7 +12,11 @@
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>false</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
+    <PublishSelfContained>false</PublishSelfContained>
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <SatelliteResourceLanguages>ko-KR;en-US</SatelliteResourceLanguages>
+    <RetainedRuntimeResourceLanguages>ko-KR;en-us</RetainedRuntimeResourceLanguages>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -43,22 +47,10 @@
     <ProjectCapability Include="Msix" />
   </ItemGroup>
 
-  <!--
-    Microsoft.Windows.SDK.BuildTools.WinApp adds first-class support for
-    `dotnet run` on packaged WinUI apps: it hooks the .NET CLI Run target to
-    register a debug identity via the winapp CLI and launch the app with
-    package identity (AUMID).
-    Set <EnableWinAppRunSupport>false</EnableWinAppRunSupport> in a
-    <PropertyGroup> above to opt out.
-  -->
   <ItemGroup>
     <ProjectReference Include="..\SteamKOntroller.Core\SteamKOntroller.Core.csproj" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" Version="0.3.1">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.0.1" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.0.12" />
   </ItemGroup>
 
   <!--
@@ -74,7 +66,87 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
+
+  <Target Name="DeleteUnusedRuntimeFiles" AfterTargets="CopyFilesToOutputDirectory;Publish">
+    <ItemGroup>
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Web.WebView2*.dll;$(TargetDir)WebView2Loader.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Security.Authentication.OAuth.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.ApplicationModel.Background.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.ApplicationModel.Resources.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.AppLifecycle.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.AppNotifications.Builder.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.AppNotifications.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.BadgeNotifications.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Foundation.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Management.Deployment.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Media.Capture.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.PushNotifications.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Security.AccessControl.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Storage.Pickers.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.Storage.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.System.Power.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(TargetDir)Microsoft.Windows.System.Projection.dll" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Web.WebView2*.dll;$(PublishDir)WebView2Loader.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Security.Authentication.OAuth.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.ApplicationModel.Background.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.ApplicationModel.Background.UniversalBGTask.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.ApplicationModel.DynamicDependency.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.ApplicationModel.Resources.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.ApplicationModel.WindowsAppRuntime.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.AppLifecycle.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.AppNotifications.Builder.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.AppNotifications.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.BadgeNotifications.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Foundation.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Management.Deployment.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Media.Capture.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.PushNotifications.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Security.AccessControl.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Storage.Pickers.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.Storage.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.System.Power.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)Microsoft.Windows.System.Projection.dll" Condition="'$(PublishDir)' != ''" />
+      <_UnusedRuntimeFiles Include="$(PublishDir)SteamKOntroller.App.pdb;$(PublishDir)SteamKOntroller.Core.pdb" Condition="'$(PublishDir)' != ''" />
+    </ItemGroup>
+
+    <Delete Files="@(_UnusedRuntimeFiles)" TreatErrorsAsWarnings="false" />
+  </Target>
+
+  <Target Name="RemoveUnusedWinUIRuntimeResourceCultures" AfterTargets="CopyFilesToOutputDirectory;Publish">
+    <ItemGroup>
+      <_RetainedRuntimeResourceDirectories Include="$(TargetDir)$(RetainedRuntimeResourceLanguages.Split(';'))\" />
+      <_WinUIRuntimeResourceDirectories Include="$(TargetDir)*\" />
+      <_WinUIRuntimeResourceDirectories Remove="@(_RetainedRuntimeResourceDirectories)" />
+    </ItemGroup>
+
+    <RemoveDir
+      Directories="@(_WinUIRuntimeResourceDirectories)"
+      Condition="Exists('%(_WinUIRuntimeResourceDirectories.Identity)Microsoft.ui.xaml.dll.mui') Or Exists('%(_WinUIRuntimeResourceDirectories.Identity)Microsoft.UI.Xaml.Phone.dll.mui')" />
+  </Target>
+
+  <Target Name="CopyWinUILooseResourcesToPublishDirectory" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
+    <ItemGroup>
+      <_WinUIXamlResources Include="$(TargetDir)*.xbf" />
+      <_WinUIPriResources Include="$(TargetDir)*.pri" />
+      <_AppAssetFiles Include="$(TargetDir)Assets\**\*" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(_WinUIXamlResources)"
+      DestinationFolder="$(PublishDir)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="@(_WinUIPriResources)"
+      DestinationFolder="$(PublishDir)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      SourceFiles="@(_AppAssetFiles)"
+      DestinationFiles="@(_AppAssetFiles->'$(PublishDir)Assets\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
 </Project>
