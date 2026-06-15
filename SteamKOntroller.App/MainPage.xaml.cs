@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using SteamKOntroller.App.Services;
 using SteamKOntroller.Core.Diagnostics;
@@ -11,6 +12,9 @@ public sealed partial class MainPage : Page
     private readonly BridgeRuntime _runtime;
     private readonly StartupRegistrationService _startup = new();
     private readonly DispatcherTimer _timer = new();
+    private int _recentActivityColumns;
+    private int _settingsCardColumns;
+    private int _statusCardColumns;
     private bool _updatingControls;
 
     public MainPage()
@@ -38,6 +42,7 @@ public sealed partial class MainPage : Page
         _runtime.SettingsChanged += OnSettingsChanged;
         LoadRecentRecords();
         _timer.Start();
+        ApplyResponsiveLayout(ActualWidth);
         RefreshStatus();
     }
 
@@ -123,8 +128,9 @@ public sealed partial class MainPage : Page
 
         _updatingControls = false;
 
-        BridgeActionText.Text = enabled ? "끄기" : "켜기";
+        BridgeActionButton.Label = enabled ? "브리지 끄기" : "브리지 켜기";
         BridgeActionIcon.Symbol = enabled ? Symbol.Cancel : Symbol.Play;
+        AutomationProperties.SetName(BridgeActionButton, BridgeActionButton.Label);
 
         StatusInfo.Severity = _runtime.LastStartupError is null
             ? (snapshot.HookInstalled ? InfoBarSeverity.Success : InfoBarSeverity.Warning)
@@ -156,7 +162,7 @@ public sealed partial class MainPage : Page
     {
         if (!diagnosticsEnabled)
         {
-            return "영구 진단 로그가 꺼져 있습니다.";
+            return "진단 로그가 꺼져 있습니다.";
         }
 
         return _runtime.CurrentLogPath is null
@@ -166,12 +172,10 @@ public sealed partial class MainPage : Page
 
     private void RootNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.SelectedItem is not NavigationViewItem item || item.Tag is not string tag)
+        if (args.SelectedItem is NavigationViewItem { Tag: string tag })
         {
-            return;
+            ShowView(tag);
         }
-
-        ShowView(tag);
     }
 
     private void ShowView(string tag)
@@ -179,12 +183,123 @@ public sealed partial class MainPage : Page
         SettingsView.Visibility = tag == "settings" ? Visibility.Visible : Visibility.Collapsed;
         StatusView.Visibility = tag == "status" ? Visibility.Visible : Visibility.Collapsed;
         DiagnosticsView.Visibility = tag == "diagnostics" ? Visibility.Visible : Visibility.Collapsed;
-        RootNavigation.Header = tag switch
+        PageTitleText.Text = tag switch
         {
             "status" => "상태",
             "diagnostics" => "진단",
             _ => "설정"
         };
+    }
+
+    private void Page_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ApplyResponsiveLayout(e.NewSize.Width);
+    }
+
+    private void ApplyResponsiveLayout(double width)
+    {
+        var contentWidth = ContentRoot.ActualWidth > 0 ? ContentRoot.ActualWidth : width;
+        var isCompact = contentWidth < 720;
+
+        ContentRoot.Padding = isCompact
+            ? new Thickness(18, 16, 18, 20)
+            : new Thickness(32, 24, 32, 32);
+        PageCommandBar.DefaultLabelPosition = isCompact
+            ? CommandBarDefaultLabelPosition.Collapsed
+            : CommandBarDefaultLabelPosition.Right;
+
+        var availableWidth = Math.Max(0, contentWidth - ContentRoot.Padding.Left - ContentRoot.Padding.Right - 8);
+        SizePanel(SettingsPanel, availableWidth, 1180);
+        SizePanel(StatusPanel, availableWidth, 1180);
+
+        ArrangeSettingsCards(contentWidth < 980 ? 1 : 2);
+        ArrangeStatusCards(contentWidth < 980 ? 1 : contentWidth < 1280 ? 2 : 4);
+        ArrangeRecentActivity(contentWidth < 900 ? 1 : 2);
+    }
+
+    private static void SizePanel(FrameworkElement panel, double availableWidth, double maxWidth)
+    {
+        panel.Width = availableWidth > 0 ? Math.Min(availableWidth, maxWidth) : double.NaN;
+    }
+
+    private void ArrangeSettingsCards(int columns)
+    {
+        if (_settingsCardColumns == columns)
+        {
+            return;
+        }
+
+        _settingsCardColumns = columns;
+        SettingsColumn1.Width = columns == 1 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        Grid.SetColumnSpan(StatusInfo, columns);
+
+        var cards = new FrameworkElement[]
+        {
+            BridgeSettingCard,
+            StartupSettingCard,
+            DiagnosticSettingCard,
+            RetentionSettingCard
+        };
+        for (var index = 0; index < cards.Length; index++)
+        {
+            Grid.SetColumn(cards[index], index % columns);
+            Grid.SetRow(cards[index], (index / columns) + 1);
+        }
+    }
+
+    private void ArrangeStatusCards(int columns)
+    {
+        if (_statusCardColumns == columns)
+        {
+            return;
+        }
+
+        _statusCardColumns = columns;
+        var columnDefinitions = new[]
+        {
+            StatusColumn0,
+            StatusColumn1,
+            StatusColumn2,
+            StatusColumn3
+        };
+        for (var index = 0; index < columnDefinitions.Length; index++)
+        {
+            columnDefinitions[index].Width = index < columns
+                ? new GridLength(1, GridUnitType.Star)
+                : new GridLength(0);
+        }
+
+        StatusCardsGrid.ColumnSpacing = columns == 1 ? 0 : 12;
+        var cards = new FrameworkElement[]
+        {
+            EnabledCard,
+            HookCard,
+            HookEventsCard,
+            CandidatesCard,
+            SuppressedCard,
+            ReinjectedCard,
+            LoopGuardCard,
+            FailuresCard
+        };
+        for (var index = 0; index < cards.Length; index++)
+        {
+            Grid.SetColumn(cards[index], index % columns);
+            Grid.SetRow(cards[index], index / columns);
+        }
+    }
+
+    private void ArrangeRecentActivity(int columns)
+    {
+        if (_recentActivityColumns == columns)
+        {
+            return;
+        }
+
+        _recentActivityColumns = columns;
+        RecentColumn1.Width = columns == 1 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        Grid.SetColumnSpan(RecentActivityTitle, columns);
+        Grid.SetColumn(LastEventPanel, columns == 1 ? 0 : 1);
+        Grid.SetRow(LastEventPanel, columns == 1 ? 2 : 1);
     }
 
     private void BridgeSwitch_Toggled(object sender, RoutedEventArgs e)
