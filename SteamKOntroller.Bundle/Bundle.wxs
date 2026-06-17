@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle
+    Name="SteamKOntroller"
+    Manufacturer="HiSkyZen"
+    Version="1.0.0"
+    UpgradeCode="{D6D8EC99-0483-4FE0-AD8A-C32B0E415490}"
+    Compressed="yes"
+    IconSourceFile="..\SteamKOntroller.App\Assets\AppIcon.ico">
+
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        Theme="rtfLargeLicense"
+        LicenseFile="License.rtf"
+        LaunchTarget="[LocalAppDataFolder]SteamKOntroller\SteamKOntroller.App.exe"
+        LaunchWorkingFolder="[LocalAppDataFolder]SteamKOntroller"
+        ShowVersion="yes" />
+    </BootstrapperApplication>
+
+    <Chain>
+      <ExePackage
+        Id="SteamKOntrollerPreInstall"
+        SourceFile="$(var.SetupActionsPath)"
+        Name="SteamKOntroller.SetupActions.Pre.exe"
+        CacheId="SteamKOntroller.SetupActions.Pre"
+        InstallArguments="--mode preinstall$(var.PrerequisiteArguments)"
+        RepairArguments="--mode preinstall$(var.PrerequisiteArguments)"
+        DetectCondition="0"
+        PerMachine="yes"
+        Permanent="yes"
+        Vital="yes" />
+      <MsiPackage
+        Id="SteamKOntrollerApp"
+        SourceFile="$(var.MsiPath)"
+        Visible="no"
+        Vital="yes" />
+      <ExePackage
+        Id="SteamKOntrollerPostInstall"
+        SourceFile="$(var.SetupActionsPath)"
+        Name="SteamKOntroller.SetupActions.Post.exe"
+        CacheId="SteamKOntroller.SetupActions.Post"
+        InstallArguments="--mode postinstall"
+        RepairArguments="--mode postinstall"
+        DetectCondition="0"
+        Permanent="yes"
+        Vital="yes" />
+      <ExePackage
+        Id="SteamKOntrollerUninstallCleanup"
+        SourceFile="$(var.SetupActionsPath)"
+        Name="SteamKOntroller.SetupActions.Uninstall.exe"
+        CacheId="SteamKOntroller.SetupActions.Uninstall"
+        DetectCondition="1"
+        UninstallArguments="--mode uninstall"
+        PerMachine="yes"
+        Vital="yes" />
+    </Chain>
+  </Bundle>
+</Wix>

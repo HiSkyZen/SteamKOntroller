@@ -424,8 +424,14 @@ public sealed class MainForm : Form
 
 public sealed class ProbeTextBox : TextBox
 {
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<bool>? ShouldLog { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<string?>? TextSnapshotProvider { get; set; }
+
     public event EventHandler<InputEventRecord>? ProbeWindowMessage;
 
     protected override void WndProc(ref Message m)

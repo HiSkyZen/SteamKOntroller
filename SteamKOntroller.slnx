@@ -1,8 +1,14 @@
 <Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
   <Project Path="SteamKOntroller.App/SteamKOntroller.App.csproj">
-    <Platform Solution="Debug|*" Project="x64" />
+    <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="SteamKOntroller.Bundle/SteamKOntroller.Bundle.wixproj" />
   <Project Path="SteamKOntroller.Core/SteamKOntroller.Core.csproj" />
+  <Project Path="SteamKOntroller.Installer/SteamKOntroller.Installer.wixproj" />
+  <Project Path="SteamKOntroller.InstallerAgent/SteamKOntroller.InstallerAgent.csproj" />
   <Project Path="SteamKOntroller.InputProbe/SteamKOntroller.InputProbe.csproj" />
   <Project Path="SteamKOntroller.Tests/SteamKOntroller.Tests.csproj" />
 </Solution>

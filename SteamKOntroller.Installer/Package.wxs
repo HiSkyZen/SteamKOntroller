@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="SteamKOntroller"
+    Manufacturer="HiSkyZen"
+    Version="1.0.0"
+    UpgradeCode="{5B80BC1A-449F-4682-A897-C4D25A3BD209}"
+    Language="1042"
+    Scope="perUser">
+
+    <MajorUpgrade DowngradeErrorMessage="SteamKOntroller의 최신 버전이 이미 설치되어 있습니다." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="..\SteamKOntroller.App\Assets\AppIcon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="SteamKOntroller" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles">
+      <Files Directory="INSTALLFOLDER" Include="$(var.AppPublishDir)**" />
+    </ComponentGroup>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="SteamKOntroller" />
+    </StandardDirectory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="{C4538D14-2E3C-42D5-A58D-17E19F1C2856}">
+        <Shortcut
+          Id="ApplicationStartMenuShortcut"
+          Name="SteamKOntroller"
+          Description="Steam 키보드 입력 브리지"
+          Target="[INSTALLFOLDER]SteamKOntroller.App.exe"
+          WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\SteamKOntroller" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="MainFeature" Title="SteamKOntroller" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+    </Feature>
+  </Package>
+</Wix>

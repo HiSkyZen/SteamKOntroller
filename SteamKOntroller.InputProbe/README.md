@@ -13,7 +13,7 @@ Steam Keyboard / physical keyboard / IME input path analyzer PoC.
 ## Requirements
 
 - Windows 10/11
-- .NET 8 SDK
+- .NET 10 SDK
 - Visual Studio 2022 또는 `dotnet` CLI
 
 ## Build
@@ -31,7 +31,7 @@ dotnet run --project .\SteamKOntroller.InputProbe.csproj
 또는 Release 빌드 후:
 
 ```powershell
-.\bin\Release\net8.0-windows\SteamKOntroller.InputProbe.exe
+.\bin\Release\net10.0-windows\SteamKOntroller.InputProbe.exe
 ```
 
 관리자 권한은 기본적으로 필요하지 않습니다. 다만 관리자 권한 앱을 대상으로 전역 후크 관찰이 필요하면 InputProbe도 관리자 권한으로 실행해서 비교하십시오.

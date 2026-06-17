@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>SteamKOntroller.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -12,9 +12,9 @@
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>false</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
-    <SelfContained>false</SelfContained>
-    <PublishSelfContained>false</PublishSelfContained>
-    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <SelfContained Condition="'$(SelfContained)' == ''">false</SelfContained>
+    <PublishSelfContained Condition="'$(PublishSelfContained)' == ''">false</PublishSelfContained>
+    <WindowsAppSDKSelfContained Condition="'$(WindowsAppSDKSelfContained)' == ''">false</WindowsAppSDKSelfContained>
     <SatelliteResourceLanguages>ko-KR;en-US</SatelliteResourceLanguages>
     <RetainedRuntimeResourceLanguages>ko-KR;en-us</RetainedRuntimeResourceLanguages>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
@@ -49,8 +49,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SteamKOntroller.Core\SteamKOntroller.Core.csproj" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.0.1" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.0.12" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.1.3" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.1.0" />
   </ItemGroup>
 
   <!--

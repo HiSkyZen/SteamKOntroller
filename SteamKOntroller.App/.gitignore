@@ -43,6 +43,10 @@ publish/
 *.pubxml
 PublishScripts/
 
+# VS Installer project publish profile
+!Properties/PublishProfiles/
+!Properties/PublishProfiles/Installer.pubxml
+
 # Code analysis and tooling
 _ReSharper*/
 *.DotSettings.user

@@ -59,5 +59,9 @@ project.lock.json
 *.pubxml
 PublishScripts/
 
+# Installer publish profile used by the VS Installer project
+!SteamKOntroller.App/Properties/PublishProfiles/
+!SteamKOntroller.App/Properties/PublishProfiles/Installer.pubxml
+
 # Generated project files
 *_wpftmp.csproj

@@ -1,0 +1,40 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+    <Cultures>ko-kr</Cultures>
+    <InstallerFlavor Condition="'$(InstallerFlavor)' == ''">SelfContained</InstallerFlavor>
+    <InstallerFlavorSuffix Condition="'$(InstallerFlavor)' == 'FrameworkDependent'">.FrameworkDependent</InstallerFlavorSuffix>
+    <OutputName>SteamKOntroller.Setup$(InstallerFlavorSuffix)</OutputName>
+    <OutputType>Bundle</OutputType>
+    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <IntermediateOutputPath>obj\$(InstallerFlavor)\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <PayloadPublishDir>$(BaseIntermediateOutputPath)publish\actions\$(InstallerFlavor)\$(Configuration)\$(Platform)\</PayloadPublishDir>
+    <MsiPath>$(MSBuildThisFileDirectory)..\SteamKOntroller.Installer\bin\$(Platform)\$(Configuration)\SteamKOntroller.App$(InstallerFlavorSuffix).msi</MsiPath>
+    <SetupActionsPath>$(PayloadPublishDir)SteamKOntroller.SetupActions.exe</SetupActionsPath>
+    <PrerequisiteArguments Condition="'$(InstallerFlavor)' == 'FrameworkDependent'"> --install-runtime-prerequisites</PrerequisiteArguments>
+    <DefineConstants>$(DefineConstants);MsiPath=$(MsiPath);SetupActionsPath=$(SetupActionsPath);PrerequisiteArguments=$(PrerequisiteArguments)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.BootstrapperApplications.wixext" Version="7.0.0" />
+  </ItemGroup>
+
+  <Target Name="BuildBundlePayload" BeforeTargets="BeforeBuild">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)..\SteamKOntroller.Installer\SteamKOntroller.Installer.wixproj" Properties="Configuration=$(Configuration);Platform=$(Platform);InstallerFlavor=$(InstallerFlavor)" Targets="Build" />
+    <RemoveDir Directories="$(PayloadPublishDir)" />
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\SteamKOntroller.InstallerAgent\SteamKOntroller.InstallerAgent.csproj&quot; -c $(Configuration) -r $(RuntimeIdentifier) --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishTrimmed=false -p:DebugType=none -p:DebugSymbols=false -p:PublishDir=&quot;$(MSBuildProjectDirectory)\$(PayloadPublishDir)&quot;" />
+  </Target>
+
+  <Target
+    Name="BuildFrameworkDependentBundle"
+    AfterTargets="Build"
+    Condition="'$(InstallerFlavor)' != 'FrameworkDependent' And '$(SkipFrameworkDependentBundle)' != 'true'">
+    <MSBuild
+      Projects="$(MSBuildProjectFullPath)"
+      Properties="Configuration=$(Configuration);Platform=$(Platform);InstallerFlavor=FrameworkDependent;SkipFrameworkDependentBundle=true"
+      Targets="Build" />
+  </Target>
+</Project>

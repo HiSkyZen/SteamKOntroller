@@ -1,0 +1,27 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+    <Cultures>ko-kr</Cultures>
+    <InstallerFlavor Condition="'$(InstallerFlavor)' == ''">SelfContained</InstallerFlavor>
+    <InstallerFlavorSuffix Condition="'$(InstallerFlavor)' == 'FrameworkDependent'">.FrameworkDependent</InstallerFlavorSuffix>
+    <OutputName>SteamKOntroller.App$(InstallerFlavorSuffix)</OutputName>
+    <Platform Condition="'$(Platform)' == '' Or '$(Platform)' == 'AnyCPU'">x64</Platform>
+    <IntermediateOutputPath>obj\$(InstallerFlavor)\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x64'">win-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'x86'">win-x86</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(Platform)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <SelfContainedPublish Condition="'$(InstallerFlavor)' == 'FrameworkDependent'">false</SelfContainedPublish>
+    <SelfContainedPublish Condition="'$(SelfContainedPublish)' == ''">true</SelfContainedPublish>
+    <WindowsAppSDKSelfContainedPublish Condition="'$(InstallerFlavor)' == 'FrameworkDependent'">false</WindowsAppSDKSelfContainedPublish>
+    <WindowsAppSDKSelfContainedPublish Condition="'$(WindowsAppSDKSelfContainedPublish)' == ''">true</WindowsAppSDKSelfContainedPublish>
+    <InstallerPlatform>$(Platform)</InstallerPlatform>
+    <SuppressIces>ICE03;ICE38;ICE64;ICE91</SuppressIces>
+    <AppPublishDir>$(BaseIntermediateOutputPath)publish\app\$(InstallerFlavor)\$(Configuration)\$(Platform)\</AppPublishDir>
+    <DefineConstants>$(DefineConstants);AppPublishDir=$(AppPublishDir)</DefineConstants>
+  </PropertyGroup>
+
+  <Target Name="PublishInstallerPayload" BeforeTargets="BeforeBuild">
+    <RemoveDir Directories="$(AppPublishDir)" />
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\SteamKOntroller.App\SteamKOntroller.App.csproj&quot; -c $(Configuration) -p:Platform=$(Platform) -r $(RuntimeIdentifier) --self-contained $(SelfContainedPublish) -p:PublishProfile= -p:PublishSingleFile=false -p:WindowsAppSDKSelfContained=$(WindowsAppSDKSelfContainedPublish) -p:PublishDir=&quot;$(MSBuildProjectDirectory)\$(AppPublishDir)&quot;" />
+  </Target>
+</Project>
