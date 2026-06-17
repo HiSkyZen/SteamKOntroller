@@ -55,10 +55,8 @@ public sealed class SuppressionPolicy
             return BridgeDecision.PassThrough("unsupported_key");
         }
 
-        var mockShift = target.Shifted
-            ? !VirtualKeys.IsAsciiLetter(target.VirtualKey) ||
-              SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey)
-            : modifiers.Shift && SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey);
+        var mockShift = target.Shifted ||
+            modifiers.Shift && SupportedKeyPolicy.ShouldMockShiftForHangulJamo(target.VirtualKey);
 
         return keyboardEvent.IsKeyUp
             ? new BridgeDecision(BridgeAction.SuppressOnly, "candidate_key_up")

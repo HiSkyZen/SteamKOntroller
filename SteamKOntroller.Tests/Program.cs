@@ -21,7 +21,7 @@ var tests = new (string Name, Action Body)[]
     ("policy bypasses shortcut modifiers", PolicyBypassesShortcutModifiers),
     ("policy converts packet sentinel key down to Hangul toggle", PolicyConvertsPacketSentinelKeyDownToHangulToggle),
     ("policy suppresses packet sentinel key up without reinjecting", PolicySuppressesPacketSentinelKeyUp),
-    ("policy maps uppercase packet QWERTOP to shifted QWERTY scancodes", PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes),
+    ("policy maps uppercase packet letters to shifted QWERTY scancodes", PolicyMapsUppercasePacketLettersToShiftedQwertyScancodes),
     ("policy maps lowercase packet letter to unshifted QWERTY scancode", PolicyMapsLowercasePacketLetterToUnshiftedQwertyScancode),
     ("policy maps packet symbols to QWERTY scancodes", PolicyMapsPacketSymbolsToQwertyScancodes),
     ("policy loop guards own Hangul reinjection", PolicyLoopGuardsOwnHangulReinjection),
@@ -156,7 +156,7 @@ static void PolicySuppressesPacketSentinelKeyUp()
     Assert(decision.Action == BridgeAction.SuppressOnly, $"got {decision.Action}");
 }
 
-static void PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes()
+static void PolicyMapsUppercasePacketLettersToShiftedQwertyScancodes()
 {
     var classifier = new SteamInputClassifier();
     var expected = new (char Key, ushort ScanCode)[]
@@ -166,8 +166,27 @@ static void PolicyMapsUppercasePacketQwertopToShiftedQwertyScancodes()
         ('E', 0x12),
         ('R', 0x13),
         ('T', 0x14),
+        ('Y', 0x15),
+        ('U', 0x16),
+        ('I', 0x17),
         ('O', 0x18),
-        ('P', 0x19)
+        ('P', 0x19),
+        ('A', 0x1E),
+        ('S', 0x1F),
+        ('D', 0x20),
+        ('F', 0x21),
+        ('G', 0x22),
+        ('H', 0x23),
+        ('J', 0x24),
+        ('K', 0x25),
+        ('L', 0x26),
+        ('Z', 0x2C),
+        ('X', 0x2D),
+        ('C', 0x2E),
+        ('V', 0x2F),
+        ('B', 0x30),
+        ('N', 0x31),
+        ('M', 0x32)
     };
 
     foreach (var item in expected)
